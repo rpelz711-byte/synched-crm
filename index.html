@@ -3,8 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
- <title>Synched Studios — Content CRM</title>
-<link rel="icon" type="image/png" href="./SynchedStudios.png" />
+  <title>Synched Studios — Content CRM</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -116,10 +115,7 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="logo">
-  <img src="./SynchedStudios.png" alt="Synched Studios" style="width:48px;height:48px;object-fit:contain;margin-bottom:8px;display:block;" />
-  Synched Studios <small>Content CRM</small>
-</div>
+    <div class="logo">Synched Studios <small>Content CRM</small></div>
     <button class="nav active" onclick="showPage('inbox',this)">📥 Inbox <span class="badge" id="inbox-badge"></span></button>
     <button class="nav" onclick="showPage('analyze',this)">🔍 Analyze a Link</button>
     <button class="nav" onclick="showPage('watchlist',this)">👁️ Watch List</button>
@@ -165,7 +161,7 @@
       </div>
       <div class="content">
         <div class="info-box">
-          <strong>How it works:</strong> Paste a URL → Gemini reads and analyzes the content → generates captions for Instagram, TikTok, and Facebook → gives you an image prompt to use in any free AI image tool. No image API needed!
+          <strong>How it works:</strong> Paste a URL → AI reads and analyzes the content → generates captions for Instagram, TikTok, and Facebook → gives you an image prompt to use in any free AI image tool. No image API needed!
         </div>
         <div class="card">
           <div class="card-title">Content source</div>
@@ -255,8 +251,8 @@
         <div class="card">
           <div class="card-title">API Keys — saved in your browser only</div>
           <div class="setting-row">
-            <div class="setting-label"><strong>Gemini API Key</strong><span>Free at aistudio.google.com → Get API key</span></div>
-            <div class="setting-input"><input type="password" id="cfg-gemini" placeholder="AIza..." /></div>
+            <div class="setting-label"><strong>OpenRouter API Key</strong><span>Free at openrouter.ai → Keys → Create Key</span></div>
+            <div class="setting-input"><input type="password" id="cfg-gemini" placeholder="sk-or-..." /></div>
           </div>
           <div class="setting-row">
             <div class="setting-label"><strong>Supabase URL</strong><span>Supabase → Settings → API → Project URL</span></div>
@@ -445,7 +441,7 @@ async function analyzeLink(){
   const url=gv('analyze-url');
   if(!url){toast('Paste a URL first');return;}
   const apiKey=ls('cfg-gemini');
-  if(!apiKey){toast('Add your Gemini API key in Settings first');return;}
+  if(!apiKey){toast('Add your OpenRouter API key in Settings first');return;}
   const brand=gv('analyze-brand')||ls('cfg-brand')||'the brand';
   const tone=gv('analyze-tone');
   const mode=gv('analyze-mode');
@@ -483,13 +479,13 @@ Platform rules:
 - image_prompt: cinematic, professional, music/creative industry aesthetic`;
 
   try{
-    const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{temperature:.85,maxOutputTokens:2048}})
+    const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`,'HTTP-Referer':'https://synched-crm.pages.dev','X-Title':'Synched Studios CRM'},
+      body:JSON.stringify({model:'mistralai/mistral-7b-instruct:free',messages:[{role:'user',content:prompt}],max_tokens:2048,temperature:.85})
     });
     const data=await res.json();
-    if(!res.ok)throw new Error(data.error?.message||'Gemini API error');
-    let raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
+    if(!res.ok)throw new Error(data.error?.message||'OpenRouter API error');
+    let raw=data.choices?.[0]?.message?.content||'';
     raw=raw.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(raw);
     analyzedResults={...parsed,sourceUrl:url};

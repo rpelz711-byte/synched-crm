@@ -251,8 +251,8 @@
         <div class="card">
           <div class="card-title">API Keys — saved in your browser only</div>
           <div class="setting-row">
-            <div class="setting-label"><strong>OpenRouter API Key</strong><span>Free at openrouter.ai → Keys → Create Key</span></div>
-            <div class="setting-input"><input type="password" id="cfg-gemini" placeholder="sk-or-..." /></div>
+            <div class="setting-label"><strong>Claude API Key</strong><span>From console.anthropic.com → API Keys</span></div>
+            <div class="setting-input"><input type="password" id="cfg-gemini" placeholder="sk-ant-..." /></div>
           </div>
           <div class="setting-row">
             <div class="setting-label"><strong>Supabase URL</strong><span>Supabase → Settings → API → Project URL</span></div>
@@ -441,7 +441,7 @@ async function analyzeLink(){
   const url=gv('analyze-url');
   if(!url){toast('Paste a URL first');return;}
   const apiKey=ls('cfg-gemini');
-  if(!apiKey){toast('Add your OpenRouter API key in Settings first');return;}
+  if(!apiKey){toast('Add your Claude API key in Settings first');return;}
   const brand=gv('analyze-brand')||ls('cfg-brand')||'the brand';
   const tone=gv('analyze-tone');
   const mode=gv('analyze-mode');
@@ -479,13 +479,13 @@ Platform rules:
 - image_prompt: cinematic, professional, music/creative industry aesthetic`;
 
   try{
-    const res=await fetch('https://openrouter.ai/api/v1/chat/completions',{
-      method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${apiKey}`,'HTTP-Referer':'https://synched-crm.pages.dev','X-Title':'Synched Studios CRM'},
-      body:JSON.stringify({model:'mistralai/mistral-7b-instruct:free',messages:[{role:'user',content:prompt}],max_tokens:2048,temperature:.85})
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2048,messages:[{role:'user',content:prompt}]})
     });
     const data=await res.json();
-    if(!res.ok)throw new Error(data.error?.message||'OpenRouter API error');
-    let raw=data.choices?.[0]?.message?.content||'';
+    if(!res.ok)throw new Error(data.error?.message||'Claude API error');
+    let raw=data.content?.[0]?.text||'';
     raw=raw.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(raw);
     analyzedResults={...parsed,sourceUrl:url};

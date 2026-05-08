@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Synched Studios — Content CRM</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0f0f13; --sur: #1a1a22; --sur2: #22222e; --sur3: #2a2a38;
+      --bdr: rgba(255,255,255,0.07); --bdr2: rgba(255,255,255,0.13);
+      --tx: #f0eeff; --mt: #8884a8; --mt2: #6663808;
+      --ac: #7c6ff7; --ac2: #a78bfa;
+      --yt: #ff4444; --fb: #1877f2; --ig: #e1306c; --tt: #69c9d0;
+      --ok: #34d399; --warn: #fbbf24;
+      --r: 12px; --rs: 8px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--tx); min-height: 100vh; }
+    .app { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar { width: 220px; background: var(--sur); border-right: 1px solid var(--bdr); padding: 22px 14px; display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+    .logo { font-size: 15px; font-weight: 700; color: var(--ac2); margin-bottom: 22px; padding: 0 8px; letter-spacing: -.2px; }
+    .logo small { display: block; color: var(--mt); font-weight: 400; font-size: 11px; margin-top: 2px; }
+    .nav { display: flex; align-items: center; gap: 9px; padding: 9px 11px; border-radius: var(--rs); cursor: pointer; font-size: 13px; color: var(--mt); border: none; background: none; width: 100%; text-align: left; transition: all .15s; }
+    .nav:hover { background: var(--sur2); color: var(--tx); }
+    .nav.active { background: rgba(124,111,247,.15); color: var(--ac2); }
+    .badge { margin-left: auto; background: var(--ac); color: #fff; font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 999px; min-width: 18px; text-align: center; }
+
+    /* Main */
+    .main { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+    .topbar { padding: 18px 28px; border-bottom: 1px solid var(--bdr); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+    .topbar-left h1 { font-size: 18px; font-weight: 600; }
+    .topbar-left p { font-size: 12px; color: var(--mt); margin-top: 2px; }
+    .content { padding: 24px 28px; flex: 1; max-width: 960px; }
+
+    /* Cards */
+    .card { background: var(--sur); border: 1px solid var(--bdr); border-radius: var(--r); padding: 20px; margin-bottom: 16px; }
+    .card-title { font-size: 11px; font-weight: 600; color: var(--mt); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 14px; }
+
+    /* Forms */
+    label { font-size: 12px; color: var(--mt); display: block; margin-bottom: 5px; }
+    input, select, textarea { width: 100%; background: var(--sur2); border: 1px solid var(--bdr2); border-radius: var(--rs); color: var(--tx); font-size: 13px; padding: 9px 12px; outline: none; transition: border .15s; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { border-color: var(--ac); }
+    textarea { resize: vertical; min-height: 70px; }
+    select option { background: var(--sur2); }
+    .fr { margin-bottom: 14px; }
+    .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .fg3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+    .input-row { display: flex; gap: 10px; }
+    .input-row input { flex: 1; }
+
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 18px; border-radius: var(--rs); border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; font-family: inherit; white-space: nowrap; }
+    .bp { background: var(--ac); color: #fff; }
+    .bp:hover { background: #6a5ef0; }
+    .bp:disabled { opacity: .5; cursor: not-allowed; }
+    .bg { background: transparent; border: 1px solid var(--bdr2); color: var(--mt); }
+    .bg:hover { border-color: var(--ac); color: var(--ac2); }
+    .br { background: transparent; border: 1px solid rgba(239,68,68,.3); color: #f87171; }
+    .br:hover { background: rgba(239,68,68,.1); }
+    .bs { padding: 5px 10px; font-size: 11px; }
+
+    /* Platform tags */
+    .tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; }
+    .tag-yt  { background: rgba(255,68,68,.12); color: var(--yt); }
+    .tag-fb  { background: rgba(24,119,242,.12); color: var(--fb); }
+    .tag-ig  { background: rgba(225,48,108,.12); color: var(--ig); }
+    .tag-tt  { background: rgba(105,201,208,.12); color: var(--tt); }
+    .tag-new { background: rgba(124,111,247,.15); color: var(--ac2); }
+    .tag-reviewed { background: rgba(251,191,36,.12); color: var(--warn); }
+    .tag-posted { background: rgba(52,211,153,.12); color: var(--ok); }
+
+    /* Source cards */
+    .source-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+    .source-card { background: var(--sur2); border: 1px solid var(--bdr); border-radius: var(--rs); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+    .source-icon { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .source-icon.yt { background: rgba(255,68,68,.12); }
+    .source-icon.fb { background: rgba(24,119,242,.12); }
+    .source-info { flex: 1; min-width: 0; }
+    .source-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .source-url { font-size: 11px; color: var(--mt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .source-meta { font-size: 11px; color: var(--mt); margin-top: 2px; }
+
+    /* Post cards */
+    .post-list { display: flex; flex-direction: column; gap: 12px; }
+    .post-card { background: var(--sur2); border: 1px solid var(--bdr); border-radius: var(--r); padding: 16px; }
+    .post-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px; }
+    .post-meta { flex: 1; min-width: 0; }
+    .post-source { font-size: 12px; color: var(--mt); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .post-title { font-size: 13px; font-weight: 500; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .post-date { font-size: 11px; color: var(--mt); white-space: nowrap; margin-left: auto; flex-shrink: 0; }
+    .post-caption { font-size: 13px; line-height: 1.7; color: var(--tx); max-height: 120px; overflow: hidden; position: relative; }
+    .post-caption.expanded { max-height: none; }
+    .post-caption::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 40px; background: linear-gradient(transparent, var(--sur2)); pointer-events: none; }
+    .post-caption.expanded::after { display: none; }
+    .post-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; align-items: center; }
+
+    /* Filters */
+    .filter-row { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; align-items: center; }
+    .filter-btn { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--bdr2); background: none; color: var(--mt); font-size: 12px; cursor: pointer; transition: all .15s; font-family: inherit; }
+    .filter-btn:hover { border-color: var(--ac); color: var(--ac2); }
+    .filter-btn.active { background: rgba(124,111,247,.15); border-color: var(--ac); color: var(--ac2); }
+
+    /* Spinner */
+    .spin { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.2); border-top-color: #fff; border-radius: 50%; animation: sp .7s linear infinite; display: inline-block; }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast-host { position: fixed; bottom: 24px; right: 24px; z-index: 9999; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--sur2); border: 1px solid var(--bdr2); color: var(--tx); padding: 10px 16px; border-radius: var(--rs); font-size: 13px; opacity: 0; transform: translateY(6px); transition: all .25s; pointer-events: none; }
+    .toast.show { opacity: 1; transform: translateY(0); }
+
+    /* Banner */
+    .banner { background: rgba(124,111,247,.08); border: 1px solid rgba(124,111,247,.25); border-radius: var(--r); padding: 14px 18px; margin-bottom: 16px; font-size: 13px; color: var(--ac2); line-height: 1.7; }
+    .banner strong { color: var(--tx); }
+    .banner a { color: var(--ac2); }
+
+    /* Page toggle */
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* Analyze result */
+    .result-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 16px; }
+    @media (max-width: 780px) { .result-grid, .source-grid, .fg, .fg3 { grid-template-columns: 1fr; } }
+    .result-card { background: var(--sur2); border: 1px solid var(--bdr); border-radius: var(--r); padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .rp { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+    /* Settings */
+    .setting-row { display: flex; align-items: flex-start; gap: 16px; padding: 16px 0; border-bottom: 1px solid var(--bdr); }
+    .setting-row:last-child { border-bottom: none; }
+    .setting-label { width: 200px; flex-shrink: 0; }
+    .setting-label strong { font-size: 13px; display: block; margin-bottom: 3px; }
+    .setting-label span { font-size: 12px; color: var(--mt); line-height: 1.5; }
+    .setting-input { flex: 1; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 48px 20px; color: var(--mt); font-size: 13px; }
+    .empty-icon { font-size: 32px; margin-bottom: 12px; }
+
+    /* Stats row */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+    .stat { background: var(--sur); border: 1px solid var(--bdr); border-radius: var(--rs); padding: 14px 16px; }
+    .stat-num { font-size: 24px; font-weight: 600; color: var(--tx); }
+    .stat-label { font-size: 11px; color: var(--mt); margin-top: 3px; }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">Synched Studios <small>Content CRM</small></div>
+    <button class="nav active" onclick="showPage('inbox', this)">📥 Inbox <span class="badge" id="inbox-badge">0</span></button>
+    <button class="nav" onclick="showPage('analyze', this)">🔍 Analyze a Link</button>
+    <button class="nav" onclick="showPage('watchlist', this)">👁️ Watch List</button>
+    <button class="nav" onclick="showPage('settings', this)">⚙️ Settings</button>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main">
+
+    <!-- ── INBOX ── -->
+    <div id="page-inbox" class="page active">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Inbox</h1><p>AI-generated content ready to copy and post</p></div>
+        <button class="btn bg bs" onclick="loadInbox()">↺ Refresh</button>
+      </div>
+      <div class="content">
+        <div id="inbox-banner" class="banner">
+          <strong>Welcome!</strong> Go to <strong>Settings</strong> to add your API keys, then add sources to your <strong>Watch List</strong>.
+          The Cloudflare Worker checks for new content daily at 7am and puts it here automatically.
+          Or use <strong>Analyze a Link</strong> to generate content from any URL right now.
+        </div>
+
+        <div class="stats" id="stats-row">
+          <div class="stat"><div class="stat-num" id="stat-new">0</div><div class="stat-label">New posts</div></div>
+          <div class="stat"><div class="stat-num" id="stat-reviewed">0</div><div class="stat-label">Reviewed</div></div>
+          <div class="stat"><div class="stat-num" id="stat-posted">0</div><div class="stat-label">Posted</div></div>
+          <div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total generated</div></div>
+        </div>
+
+        <div class="filter-row">
+          <button class="filter-btn active" data-filter="all" onclick="setFilter('all', this)">All</button>
+          <button class="filter-btn" data-filter="new" onclick="setFilter('new', this)">New</button>
+          <button class="filter-btn" data-filter="instagram" onclick="setFilter('instagram', this)">📸 Instagram</button>
+          <button class="filter-btn" data-filter="tiktok" onclick="setFilter('tiktok', this)">🎵 TikTok</button>
+          <button class="filter-btn" data-filter="facebook" onclick="setFilter('facebook', this)">👍 Facebook</button>
+        </div>
+
+        <div class="post-list" id="post-list">
+          <div class="empty"><div class="empty-icon">📭</div>No posts yet. Add sources to your Watch List or analyze a link.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ANALYZE A LINK ── -->
+    <div id="page-analyze" class="page">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Analyze a Link</h1><p>Paste any YouTube, Instagram, or Facebook URL to generate content now</p></div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="card-title">Paste a link</div>
+          <div class="fr">
+            <label>URL (YouTube video, Instagram post, Facebook post)</label>
+            <div class="input-row">
+              <input id="analyze-url" type="url" placeholder="https://www.youtube.com/watch?v=... or https://www.instagram.com/p/..." />
+              <button class="btn bp" id="analyze-btn" onclick="analyzeLink()">✨ Analyze</button>
+            </div>
+          </div>
+          <div class="fg">
+            <div class="fr">
+              <label>Brand name</label>
+              <input id="analyze-brand" type="text" placeholder="Synched Studios" />
+            </div>
+            <div class="fr">
+              <label>Tone</label>
+              <select id="analyze-tone">
+                <option value="inspiring">Inspiring</option>
+                <option value="professional">Professional</option>
+                <option value="casual and fun">Casual & fun</option>
+                <option value="educational">Educational</option>
+                <option value="hype and energetic">Hype / Energetic</option>
+                <option value="storytelling">Storytelling</option>
+              </select>
+            </div>
+          </div>
+          <div class="fr">
+            <label>What should the AI do with this content?</label>
+            <select id="analyze-mode">
+              <option value="rewrite">Rewrite it in my brand voice</option>
+              <option value="extract">Extract key ideas and make original content</option>
+              <option value="summarize">Summarize and add my own spin</option>
+              <option value="auto">AI decides based on content</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="analyze-results" style="display:none">
+          <div class="card-title" style="margin-bottom:8px">Generated Content</div>
+          <div class="result-grid" id="result-grid"></div>
+          <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn bp bs" onclick="saveAnalyzed()">💾 Save to Inbox</button>
+            <button class="btn bg bs" onclick="analyzeLink()">🔄 Regenerate</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── WATCH LIST ── -->
+    <div id="page-watchlist" class="page">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Watch List</h1><p>Sources checked daily for new content</p></div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="card-title">Add a source</div>
+          <div class="fg">
+            <div class="fr">
+              <label>Name (e.g. "Timbaland's YouTube")</label>
+              <input id="source-name" type="text" placeholder="Channel or page name" />
+            </div>
+            <div class="fr">
+              <label>Platform</label>
+              <select id="source-platform">
+                <option value="youtube">YouTube channel</option>
+                <option value="facebook">Facebook page</option>
+              </select>
+            </div>
+          </div>
+          <div class="fr">
+            <label>URL</label>
+            <input id="source-url" type="url" placeholder="https://www.youtube.com/@channelname or https://www.facebook.com/pagename" />
+          </div>
+          <button class="btn bp" onclick="addSource()">+ Add to Watch List</button>
+        </div>
+
+        <div class="banner" style="margin-bottom:16px">
+          <strong>How the daily check works:</strong> The Cloudflare Worker runs at 7am UTC every day.
+          It checks each source for new content, generates IG + TikTok + FB posts using Gemini,
+          and saves them to your Inbox automatically. Make sure your Worker environment variables are set in Settings.
+          <br><br>
+          <strong>Instagram:</strong> Use "Analyze a Link" instead — paste Instagram post URLs manually since their API doesn't allow automatic monitoring.
+        </div>
+
+        <div class="card-title">Your sources</div>
+        <div class="source-grid" id="source-list">
+          <div class="empty" style="grid-column:1/-1"><div class="empty-icon">👁️</div>No sources yet. Add a YouTube channel or Facebook page above.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div id="page-settings" class="page">
+      <div class="topbar">
+        <div class="topbar-left"><h1>Settings</h1><p>API keys and brand defaults</p></div>
+      </div>
+      <div class="content">
+        <div class="card">
+          <div class="card-title">API Keys — stored in your browser only</div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Gemini API Key</strong>
+              <span>Free at aistudio.google.com → Get API key</span>
+            </div>
+            <div class="setting-input"><input type="password" id="cfg-gemini" placeholder="AIza..." /></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>YouTube Data API Key</strong>
+              <span>Free at console.cloud.google.com → Enable YouTube Data API v3</span>
+            </div>
+            <div class="setting-input"><input type="password" id="cfg-yt" placeholder="AIza..." /></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Supabase URL</strong>
+              <span>From your Supabase project → Settings → API</span>
+            </div>
+            <div class="setting-input"><input type="text" id="cfg-sb-url" placeholder="https://xxxx.supabase.co" /></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Supabase Anon Key</strong>
+              <span>From Supabase → Settings → API → anon public</span>
+            </div>
+            <div class="setting-input"><input type="password" id="cfg-sb-key" placeholder="eyJ..." /></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Brand Defaults</div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Brand name</strong>
+              <span>Used in all AI prompts</span>
+            </div>
+            <div class="setting-input"><input type="text" id="cfg-brand" placeholder="Synched Studios" /></div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-label">
+              <strong>Brand description</strong>
+              <span>Gives Gemini context about your voice</span>
+            </div>
+            <div class="setting-input">
+              <textarea id="cfg-desc" placeholder="e.g. Synched Studios is a music production brand empowering independent artists with courses, beats, and studio sessions. Our audience is creatives aged 18-35."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Cloudflare Worker setup</div>
+          <p style="font-size:13px;color:var(--mt);line-height:1.8">
+            The <strong style="color:var(--tx)">worker.js</strong> file in this project needs these environment variables set in Cloudflare:<br>
+            <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:12px">SUPABASE_URL</code> &nbsp;
+            <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:12px">SUPABASE_KEY</code> &nbsp;
+            <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:12px">GEMINI_API_KEY</code> &nbsp;
+            <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:12px">YOUTUBE_API_KEY</code><br><br>
+            Go to: Cloudflare Dashboard → Workers & Pages → your worker → Settings → Variables and Secrets → Add variable
+            <br><br>
+            Then add a Cron Trigger: Settings → Triggers → Cron Triggers → <code style="background:var(--sur2);padding:2px 6px;border-radius:4px;font-size:12px">0 7 * * *</code> (runs 7am UTC daily)
+          </p>
+        </div>
+
+        <button class="btn bp" onclick="saveSettings()">Save Settings</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast-host"><div class="toast" id="toast"></div></div>
+
+<script>
+// ── Config ─────────────────────────────────────────────────────
+const CFG_KEYS = ['gemini', 'yt', 'sb-url', 'sb-key', 'brand', 'desc'];
+let currentFilter = 'all';
+let analyzedResults = {};
+let allPosts = [];
+
+// ── Init ───────────────────────────────────────────────────────
+window.onload = () => {
+  loadSettings();
+  loadInbox();
+  loadSources();
+  // Pre-fill analyze form with saved brand
+  const b = ls('cfg-brand'), d = ls('cfg-desc');
+  if (b) sv('analyze-brand', b);
+};
+
+function ls(k) { return localStorage.getItem(k) || ''; }
+function ss(k, v) { if (v) localStorage.setItem(k, v); }
+function sv(id, v) { const e = document.getElementById(id); if (e && v) e.value = v; }
+function gv(id) { const e = document.getElementById(id); return e ? e.value.trim() : ''; }
+
+function loadSettings() {
+  CFG_KEYS.forEach(k => sv('cfg-' + k, ls('cfg-' + k)));
+}
+
+function saveSettings() {
+  CFG_KEYS.forEach(k => ss('cfg-' + k, gv('cfg-' + k)));
+  document.getElementById('inbox-banner').style.display = 'none';
+  toast('✓ Settings saved!');
+  loadInbox();
+}
+
+// ── Navigation ─────────────────────────────────────────────────
+function showPage(name, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  btn.classList.add('active');
+  if (name === 'inbox') loadInbox();
+  if (name === 'watchlist') loadSources();
+  if (name === 'settings') loadSettings();
+}
+
+// ── Supabase client ────────────────────────────────────────────
+async function sbFetch(method, path, body) {
+  const url = ls('cfg-sb-url');
+  const key = ls('cfg-sb-key');
+  if (!url || !key) return null;
+
+  const res = await fetch(`${url}/rest/v1/${path}`, {
+    method,
+    headers: {
+      'apikey': key,
+      'Authorization': `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : 'return=minimal'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Supabase error: ${err}`);
+  }
+
+  const text = await res.text();
+  return text ? JSON.parse(text) : null;
+}
+
+// ── Inbox ──────────────────────────────────────────────────────
+async function loadInbox() {
+  try {
+    const data = await sbFetch('GET', 'generated_posts?select=*&order=generated_at.desc&limit=100');
+    if (!data) { renderPostsLocal(); return; }
+
+    allPosts = data;
+    updateStats(data);
+    renderPosts(data);
+    updateBadge(data.filter(p => p.status === 'new').length);
+
+    if (data.length > 0) {
+      document.getElementById('inbox-banner').style.display = 'none';
+    }
+  } catch (err) {
+    renderPostsLocal();
+    console.error('Inbox load error:', err);
+  }
+}
+
+function renderPostsLocal() {
+  // Fallback: show locally saved posts from analyze feature
+  const local = JSON.parse(ls('local_posts') || '[]');
+  allPosts = local;
+  updateStats(local);
+  renderPosts(local);
+  updateBadge(local.filter(p => p.status === 'new').length);
+}
+
+function updateStats(posts) {
+  document.getElementById('stat-new').textContent = posts.filter(p => p.status === 'new').length;
+  document.getElementById('stat-reviewed').textContent = posts.filter(p => p.status === 'reviewed').length;
+  document.getElementById('stat-posted').textContent = posts.filter(p => p.status === 'posted').length;
+  document.getElementById('stat-total').textContent = posts.length;
+}
+
+function updateBadge(count) {
+  const b = document.getElementById('inbox-badge');
+  b.textContent = count;
+  b.style.display = count > 0 ? 'inline' : 'none';
+}
+
+function setFilter(filter, btn) {
+  currentFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPosts(allPosts);
+}
+
+function renderPosts(posts) {
+  const container = document.getElementById('post-list');
+  let filtered = posts;
+
+  if (currentFilter === 'new') filtered = posts.filter(p => p.status === 'new');
+  else if (currentFilter !== 'all') filtered = posts.filter(p => p.platform === currentFilter);
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>No posts yet. Add sources to your Watch List or analyze a link.</div>';
+    return;
+  }
+
+  const pIcon = { instagram: '📸', tiktok: '🎵', facebook: '👍' };
+  const pLabel = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook' };
+
+  container.innerHTML = filtered.map((post, i) => `
+    <div class="post-card" id="post-${post.id || i}">
+      <div class="post-header">
+        <span class="tag tag-${post.platform}">${pIcon[post.platform]} ${pLabel[post.platform]}</span>
+        <div class="post-meta" style="margin-left:8px">
+          <div class="post-source">${esc(post.source_title || post.source_url || 'Manual')}</div>
+        </div>
+        <div class="post-date">${formatDate(post.generated_at)}</div>
+        <span class="tag tag-${post.status}" style="margin-left:8px">${post.status}</span>
+      </div>
+      <div class="post-caption" id="caption-${post.id || i}">${esc(post.caption)}</div>
+      <div class="post-actions">
+        <button class="btn bp bs" onclick="copyPost('${escAttr(post.caption)}')">📋 Copy caption</button>
+        <button class="btn bg bs" onclick="toggleExpand('caption-${post.id || i}', this)">Show more</button>
+        <select onchange="updatePostStatus('${post.id}', this.value)" style="padding:4px 8px;font-size:11px;width:auto;background:var(--sur3);border-color:var(--bdr2);color:var(--mt)">
+          <option value="new" ${post.status==='new'?'selected':''}>New</option>
+          <option value="reviewed" ${post.status==='reviewed'?'selected':''}>Reviewed</option>
+          <option value="posted" ${post.status==='posted'?'selected':''}>Posted</option>
+        </select>
+        ${post.image_prompt ? `<button class="btn bg bs" onclick="copyPost('${escAttr(post.image_prompt)}')">🖼️ Copy image prompt</button>` : ''}
+        <button class="btn br bs" onclick="deletePost('${post.id}', ${i})">🗑️</button>
+      </div>
+    </div>`).join('');
+}
+
+function toggleExpand(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('expanded');
+  btn.textContent = el.classList.contains('expanded') ? 'Show less' : 'Show more';
+}
+
+async function updatePostStatus(id, status) {
+  if (!id || id === 'undefined') return;
+  try {
+    await sbFetch('PATCH', `generated_posts?id=eq.${id}`, { status });
+    const post = allPosts.find(p => p.id === id);
+    if (post) post.status = status;
+    updateStats(allPosts);
+    updateBadge(allPosts.filter(p => p.status === 'new').length);
+  } catch (err) {
+    console.error('Status update error:', err);
+  }
+}
+
+async function deletePost(id, idx) {
+  if (id && id !== 'undefined') {
+    try { await sbFetch('DELETE', `generated_posts?id=eq.${id}`); } catch(e) {}
+  }
+  allPosts.splice(allPosts.findIndex(p => p.id === id || allPosts.indexOf(p) === idx), 1);
+  updateStats(allPosts);
+  renderPosts(allPosts);
+  toast('Deleted');
+}
+
+function copyPost(text) {
+  navigator.clipboard.writeText(text).then(() => toast('✓ Copied to clipboard!'));
+}
+
+// ── Analyze a Link ─────────────────────────────────────────────
+async function analyzeLink() {
+  const url = gv('analyze-url');
+  if (!url) { toast('Paste a URL first'); return; }
+
+  const apiKey = ls('cfg-gemini');
+  if (!apiKey) { toast('Add your Gemini API key in Settings'); return; }
+
+  const brand = gv('analyze-brand') || ls('cfg-brand') || 'the brand';
+  const tone = gv('analyze-tone');
+  const mode = gv('analyze-mode');
+  const brandDesc = ls('cfg-desc');
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span> Analyzing...';
+  document.getElementById('analyze-results').style.display = 'none';
+  document.getElementById('result-grid').innerHTML = '';
+
+  try {
+    // Detect platform from URL
+    const platform = detectPlatform(url);
+
+    const modeInstructions = {
+      rewrite: 'Rewrite this content in the brand voice — same ideas, completely new phrasing.',
+      extract: 'Extract the key ideas and create entirely original content inspired by the theme.',
+      summarize: 'Summarize the core message and add the brand\'s unique perspective on it.',
+      auto: 'Decide the best approach based on the content type and quality.'
+    };
+
+    const prompt = `You are a social media strategist for ${brand}.${brandDesc ? '\nBrand context: ' + brandDesc : ''}
+
+Source URL: ${url}
+Platform: ${platform}
+Tone: ${tone}
+Task: ${modeInstructions[mode]}
+
+Generate platform-specific repurposed content. Return ONLY valid JSON, no markdown:
+{
+  "source_title": "...",
+  "source_summary": "...",
+  "instagram": { "caption": "...", "imagePrompt": "..." },
+  "tiktok": { "caption": "...", "imagePrompt": "..." },
+  "facebook": { "caption": "...", "imagePrompt": "..." }
+}
+
+Rules:
+- Instagram: 150-220 words, visual hook, 15-20 hashtags at end, strong CTA, emojis ok
+- TikTok: punchy 1-line hook, 80-120 words, 5-8 hashtags, end with question
+- Facebook: warm, 100-180 words, 1-3 hashtags, CTA to comment
+- source_title: short title describing the source content
+- source_summary: 1-2 sentence summary of what the source is about
+- imagePrompt: 10-15 words, cinematic, music/creative industry aesthetic`;
+
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.85, maxOutputTokens: 2048 }
+        })
+      }
+    );
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Gemini API error');
+
+    let raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(raw);
+    analyzedResults = { ...parsed, sourceUrl: url };
+
+    const grid = document.getElementById('result-grid');
+    const platforms = ['instagram', 'tiktok', 'facebook'];
+    const pIcon = { instagram: '📸', tiktok: '🎵', facebook: '👍' };
+    const pLabel = { instagram: 'Instagram', tiktok: 'TikTok', facebook: 'Facebook' };
+    const dotColor = { instagram: 'var(--ig)', tiktok: 'var(--tt)', facebook: 'var(--fb)' };
+
+    for (const p of platforms) {
+      const content = parsed[p];
+      if (!content) continue;
+      const card = document.createElement('div');
+      card.className = 'result-card';
+      card.innerHTML = `
+        <div class="rp">
+          <div class="dot" style="background:${dotColor[p]}"></div>
+          ${pIcon[p]} ${pLabel[p]}
+        </div>
+        <div style="font-size:12px;line-height:1.7;color:var(--tx);max-height:200px;overflow-y:auto">${esc(content.caption)}</div>
+        <div style="font-size:11px;color:var(--mt);font-style:italic">Image: ${esc(content.imagePrompt)}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:auto">
+          <button class="btn bp bs" onclick="copyPost('${escAttr(content.caption)}')">📋 Copy</button>
+          <button class="btn bg bs" onclick="copyPost('${escAttr(content.imagePrompt)}')">🖼️ Prompt</button>
+        </div>`;
+      grid.appendChild(card);
+    }
+
+    document.getElementById('analyze-results').style.display = 'block';
+
+  } catch (err) {
+    toast('Error: ' + err.message);
+    console.error(err);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '✨ Analyze';
+  }
+}
+
+async function saveAnalyzed() {
+  const platforms = ['instagram', 'tiktok', 'facebook'];
+  const ts = new Date().toISOString();
+
+  for (const p of platforms) {
+    const content = analyzedResults[p];
+    if (!content) continue;
+
+    const post = {
+      id: Date.now() + '-' + p,
+      source_url: analyzedResults.sourceUrl,
+      source_title: analyzedResults.source_title || analyzedResults.sourceUrl,
+      source_summary: analyzedResults.source_summary || '',
+      platform: p,
+      caption: content.caption,
+      image_prompt: content.imagePrompt,
+      status: 'new',
+      generated_at: ts
+    };
+
+    try {
+      // Try Supabase first
+      await sbFetch('POST', 'generated_posts', {
+        source_url: post.source_url,
+        source_title: post.source_title,
+        source_summary: post.source_summary,
+        platform: p,
+        caption: post.caption,
+        image_prompt: post.image_prompt,
+        status: 'new',
+        generated_at: ts
+      });
+    } catch (err) {
+      // Fallback: save to localStorage
+      const local = JSON.parse(ls('local_posts') || '[]');
+      local.unshift(post);
+      localStorage.setItem('local_posts', JSON.stringify(local.slice(0, 200)));
+    }
+  }
+
+  toast('✓ Saved 3 posts to Inbox!');
+}
+
+// ── Watch List ─────────────────────────────────────────────────
+async function addSource() {
+  const name = gv('source-name');
+  const url = gv('source-url');
+  const platform = gv('source-platform');
+
+  if (!name || !url) { toast('Enter a name and URL'); return; }
+
+  const source = { name, url, platform, active: true };
+
+  try {
+    await sbFetch('POST', 'watch_sources', source);
+    toast('✓ Source added!');
+  } catch (err) {
+    // Fallback: save locally
+    const local = JSON.parse(ls('local_sources') || '[]');
+    local.push({ ...source, id: Date.now().toString() });
+    localStorage.setItem('local_sources', JSON.stringify(local));
+    toast('✓ Source saved locally (connect Supabase to sync)');
+  }
+
+  document.getElementById('source-name').value = '';
+  document.getElementById('source-url').value = '';
+  loadSources();
+}
+
+async function loadSources() {
+  const container = document.getElementById('source-list');
+  let sources = [];
+
+  try {
+    sources = await sbFetch('GET', 'watch_sources?select=*&order=created_at.desc') || [];
+  } catch (err) {
+    sources = JSON.parse(ls('local_sources') || '[]');
+  }
+
+  if (!sources.length) {
+    container.innerHTML = '<div class="empty" style="grid-column:1/-1"><div class="empty-icon">👁️</div>No sources yet. Add a YouTube channel or Facebook page above.</div>';
+    return;
+  }
+
+  const pIcon = { youtube: '▶️', facebook: '👍' };
+  const pClass = { youtube: 'yt', facebook: 'fb' };
+
+  container.innerHTML = sources.map(s => `
+    <div class="source-card">
+      <div class="source-icon ${pClass[s.platform]}">${pIcon[s.platform]}</div>
+      <div class="source-info">
+        <div class="source-name">${esc(s.name)}</div>
+        <div class="source-url">${esc(s.url)}</div>
+        <div class="source-meta">${s.last_checked_at ? 'Last checked: ' + formatDate(s.last_checked_at) : 'Not checked yet'}</div>
+      </div>
+      <button class="btn br bs" onclick="removeSource('${s.id}')">✕</button>
+    </div>`).join('');
+}
+
+async function removeSource(id) {
+  try {
+    await sbFetch('DELETE', `watch_sources?id=eq.${id}`);
+  } catch (err) {
+    const local = JSON.parse(ls('local_sources') || '[]').filter(s => s.id !== id);
+    localStorage.setItem('local_sources', JSON.stringify(local));
+  }
+  loadSources();
+  toast('Source removed');
+}
+
+// ── Helpers ────────────────────────────────────────────────────
+function detectPlatform(url) {
+  if (url.includes('youtube.com') || url.includes('youtu.be')) return 'YouTube';
+  if (url.includes('instagram.com')) return 'Instagram';
+  if (url.includes('facebook.com') || url.includes('fb.com')) return 'Facebook';
+  return 'Web';
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function escAttr(s) {
+  return String(s || '').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/\n/g, ' ');
+}
+</script>
+</body>
+</html>

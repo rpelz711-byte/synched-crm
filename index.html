@@ -255,6 +255,10 @@
             <div class="setting-input"><input type="password" id="cfg-gemini" placeholder="sk-ant-..." /></div>
           </div>
           <div class="setting-row">
+            <div class="setting-label"><strong>YouTube API Key</strong><span>From console.cloud.google.com → YouTube Data API v3</span></div>
+            <div class="setting-input"><input type="password" id="cfg-yt" placeholder="AIza..." /></div>
+          </div>
+          <div class="setting-row">
             <div class="setting-label"><strong>Supabase URL</strong><span>Supabase → Settings → API → Project URL</span></div>
             <div class="setting-input"><input type="text" id="cfg-sb-url" placeholder="https://xxxx.supabase.co" /></div>
           </div>
@@ -307,11 +311,11 @@ window.onload=()=>{
 };
 
 function loadSettings(){
-  ['gemini','sb-url','sb-key','brand','desc'].forEach(k=>sv('cfg-'+k,ls('cfg-'+k)));
+  ['gemini','yt','sb-url','sb-key','brand','desc'].forEach(k=>sv('cfg-'+k,ls('cfg-'+k)));
 }
 
 function saveSettings(){
-  ['gemini','sb-url','sb-key','brand','desc'].forEach(k=>ss('cfg-'+k,gv('cfg-'+k)));
+  ['gemini','yt','sb-url','sb-key','brand','desc'].forEach(k=>ss('cfg-'+k,gv('cfg-'+k)));
   sv('analyze-brand',ls('cfg-brand'));
   toast('✓ Settings saved!');
 }
@@ -437,6 +441,23 @@ async function deletePost(id,idx){
   toast('Deleted');
 }
 
+async function fetchYouTubeData(url, ytKey) {
+  // Extract video ID from various YouTube URL formats
+  const match = url.match(/(?:v=|youtu\.be\/|shorts\/)([a-zA-Z0-9_-]{11})/);
+  if (!match) return null;
+  const videoId = match[1];
+  const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?id=${videoId}&part=snippet&key=${ytKey}`);
+  const data = await res.json();
+  const item = data.items?.[0]?.snippet;
+  if (!item) return null;
+  return {
+    title: item.title,
+    description: (item.description || '').slice(0, 800),
+    channel: item.channelTitle,
+    tags: (item.tags || []).slice(0, 10).join(', ')
+  };
+}
+
 async function analyzeLink(){
   const url=gv('analyze-url');
   if(!url){toast('Paste a URL first');return;}
@@ -446,10 +467,34 @@ async function analyzeLink(){
   const tone=gv('analyze-tone');
   const mode=gv('analyze-mode');
   const brandDesc=ls('cfg-desc');
+  const ytKey=ls('cfg-yt');
   const btn=document.getElementById('analyze-btn');
-  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Analyzing...';
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Fetching content...';
   document.getElementById('analyze-results').style.display='none';
   document.getElementById('result-grid').innerHTML='';
+
+  // Fetch real content from YouTube if possible
+  let sourceContext = `Source URL: ${url}`;
+  const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+  if (isYouTube && ytKey) {
+    try {
+      btn.innerHTML='<span class="spin"></span> Reading video...';
+      const yt = await fetchYouTubeData(url, ytKey);
+      if (yt) {
+        sourceContext = `Source: YouTube video
+Title: ${yt.title}
+Channel: ${yt.channel}
+Description: ${yt.description}
+Tags: ${yt.tags}
+URL: ${url}`;
+      }
+    } catch(e) {
+      console.error('YouTube fetch error:', e);
+    }
+  }
+
+  btn.innerHTML='<span class="spin"></span> Generating captions...';
+
   const modeMap={
     rewrite:'Rewrite this content in the brand voice — same idea, completely new phrasing.',
     extract:'Extract the key ideas and create entirely original content inspired by the theme.',
@@ -458,14 +503,14 @@ async function analyzeLink(){
   };
   const prompt=`You are a social media strategist for ${brand}.${brandDesc?'\nBrand context: '+brandDesc:''}
 
-Source URL: ${url}
+${sourceContext}
 Tone: ${tone}
 Task: ${modeMap[mode]}
 
-Generate 3 platform-specific posts. Return ONLY valid JSON, no markdown, no backticks:
+Generate 3 platform-specific posts based on the ACTUAL content above. Return ONLY valid JSON, no markdown, no backticks:
 {
   "source_title": "short descriptive title of the source content",
-  "source_summary": "1-2 sentence summary",
+  "source_summary": "1-2 sentence summary of what this content is actually about",
   "instagram": { "caption": "...", "image_prompt": "10-15 word cinematic image description for an AI image generator" },
   "tiktok": { "caption": "...", "image_prompt": "10-15 word cinematic image description" },
   "facebook": { "caption": "...", "image_prompt": "10-15 word cinematic image description" }
@@ -476,6 +521,7 @@ Platform rules:
 - TikTok: punchy 1-line hook, 80-120 words, conversational energy, 5-8 hashtags, end with question
 - Facebook: warm and conversational, 100-180 words, story or insight, 1-3 hashtags, CTA to comment
 - Make content feel original to ${brand} — not a repost
+- Base everything on the ACTUAL video/post content provided above
 - image_prompt: cinematic, professional, music/creative industry aesthetic`;
 
   try{

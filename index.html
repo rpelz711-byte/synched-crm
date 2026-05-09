@@ -110,6 +110,51 @@
     .stat { background: var(--sur); border: 1px solid var(--bdr); border-radius: var(--rs); padding: 14px 16px; }
     .stat-num { font-size: 24px; font-weight: 600; }
     .stat-label { font-size: 11px; color: var(--mt); margin-top: 3px; }
+
+    /* ── Bottom nav (mobile only) ── */
+    .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--sur); border-top: 1px solid var(--bdr); z-index: 100; }
+    .bottom-nav-inner { display: flex; }
+    .bnav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px 18px; border: none; background: none; color: var(--mt); font-size: 10px; cursor: pointer; transition: all .15s; font-family: inherit; -webkit-tap-highlight-color: transparent; }
+    .bnav .bicon { font-size: 22px; line-height: 1; }
+    .bnav.active { color: var(--ac2); }
+    .bnav .bbadge { background: var(--ac); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 999px; display: none; margin-top: -4px; }
+
+    /* ── MOBILE ── */
+    @media (max-width: 640px) {
+      .sidebar { display: none; }
+      .bottom-nav { display: block; }
+      .main { padding-bottom: 72px; }
+      .topbar { padding: 14px 16px; }
+      .topbar h1 { font-size: 16px; }
+      .topbar p { font-size: 11px; }
+      .content { padding: 14px; }
+      .card { padding: 14px; margin-bottom: 12px; }
+      .fg { grid-template-columns: 1fr; }
+      .result-grid { grid-template-columns: 1fr; }
+      .source-grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+      .stat { padding: 10px 12px; }
+      .stat-num { font-size: 20px; }
+      .setting-row { flex-direction: column; gap: 8px; }
+      .setting-label { width: 100%; }
+      input, select, textarea { font-size: 16px; } /* prevents iOS zoom */
+      .btn { padding: 12px 16px; font-size: 14px; }
+      .toast { bottom: 80px; left: 12px; right: 12px; text-align: center; }
+      .filter-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+      .filter-btn { flex-shrink: 0; }
+      .post-actions { gap: 6px; }
+    }
+
+    /* ── TABLET ── */
+    @media (min-width: 641px) and (max-width: 900px) {
+      .sidebar { width: 180px; padding: 18px 10px; }
+      .result-grid { grid-template-columns: 1fr 1fr; }
+      .source-grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .setting-row { flex-direction: column; gap: 8px; }
+      .setting-label { width: 100%; }
+      .content { padding: 18px; }
+    }
   </style>
 </head>
 <body>
@@ -124,6 +169,29 @@
     <button class="nav" onclick="showPage('watchlist',this)">👁️ Watch List</button>
     <button class="nav" onclick="showPage('settings',this)">⚙️ Settings</button>
   </aside>
+
+  <!-- Bottom nav for mobile -->
+  <nav class="bottom-nav">
+    <div class="bottom-nav-inner">
+      <button class="bnav active" id="bnav-inbox" onclick="showPageMobile('inbox', this)">
+        <span class="bicon">📥</span>
+        <span class="bbadge" id="inbox-badge-mobile"></span>
+        Inbox
+      </button>
+      <button class="bnav" id="bnav-analyze" onclick="showPageMobile('analyze', this)">
+        <span class="bicon">🔍</span>
+        Analyze
+      </button>
+      <button class="bnav" id="bnav-watchlist" onclick="showPageMobile('watchlist', this)">
+        <span class="bicon">👁️</span>
+        Watch List
+      </button>
+      <button class="bnav" id="bnav-settings" onclick="showPageMobile('settings', this)">
+        <span class="bicon">⚙️</span>
+        Settings
+      </button>
+    </div>
+  </nav>
 
   <main class="main">
 

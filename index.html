@@ -137,6 +137,13 @@
     .member-assign-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--bdr); }
     .member-assign-row:last-child { border-bottom:none; }
     .member-assign-row input[type=checkbox] { width:16px; height:16px; flex-shrink:0; accent-color:var(--ac); }
+    .file-item { display:flex; align-items:center; gap:10px; background:var(--sur2); border:1px solid var(--bdr); border-radius:var(--rs); padding:10px 12px; }
+    .file-icon { font-size:20px; flex-shrink:0; }
+    .file-info { flex:1; min-width:0; }
+    .file-name { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-size { font-size:11px; color:var(--mt); margin-top:2px; }
+    .file-progress { height:3px; background:var(--bdr2); border-radius:999px; margin-top:6px; overflow:hidden; }
+    .file-progress-bar { height:100%; background:var(--ac); border-radius:999px; transition:width .3s; }
 
     .stat-label { font-size: 11px; color: var(--mt); margin-top: 3px; }
 
@@ -638,6 +645,25 @@
       <div id="task-members-list" style="display:flex;flex-direction:column;gap:8px;background:var(--sur2);border:1px solid var(--bdr2);border-radius:var(--rs);padding:10px;max-height:180px;overflow-y:auto">
         <div style="font-size:12px;color:var(--mt)">Loading members...</div>
       </div>
+    </div>
+
+    <div class="fr">
+      <label>Attach files (PDF, images, video, audio)</label>
+      <div id="task-file-drop"
+        style="border:2px dashed var(--bdr2);border-radius:var(--rs);padding:20px;text-align:center;cursor:pointer;transition:border .15s;background:var(--sur2)"
+        onclick="document.getElementById('task-file-input').click()"
+        ondragover="event.preventDefault();this.style.borderColor='var(--ac)'"
+        ondragleave="this.style.borderColor='var(--bdr2)'"
+        ondrop="handleFileDrop(event)">
+        <div style="font-size:28px;margin-bottom:6px">📎</div>
+        <div style="font-size:13px;color:var(--mt)">Click or drag & drop files here</div>
+        <div style="font-size:11px;color:var(--mt);margin-top:4px">PDF, PNG, JPG, MP4, MOV, MP3, WAV — max 50MB each</div>
+        <input type="file" id="task-file-input" multiple
+          accept=".pdf,.png,.jpg,.jpeg,.gif,.mp4,.mov,.mp3,.wav,.m4a"
+          style="display:none" onchange="handleFileSelect(this)" />
+      </div>
+      <div id="pending-files" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
+      <div id="existing-files" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
     </div>
 
     <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
@@ -1465,6 +1491,12 @@ function renderTasks() {
   }
 
   container.innerHTML = filtered.map(task => renderTaskCard(task, isAdmin)).join('');
+
+  // Load file attachments for each task asynchronously
+  for (const task of filtered) {
+    const fileContainer = document.getElementById(`files-${task.id}`);
+    if (fileContainer) loadFilesForTask(task.id, fileContainer);
+  }
 }
 
 function renderTaskCard(task, isAdmin) {
@@ -1510,6 +1542,7 @@ function renderTaskCard(task, isAdmin) {
       <span style="font-size:12px;color:var(--mt)">${PRIORITY_LABELS[task.priority] || task.priority}</span>
     </div>
     ${assignments.length ? `<div class="task-assignees">${assigneesHtml}</div>` : ''}
+    <div id="files-${task.id}"></div>
     <div class="task-actions">
       ${canComplete ? `<button class="btn bp bs" onclick="markMyTaskDone('${task.id}')">✓ Mark my part done</button>` : ''}
       ${myCompleted ? `<span style="font-size:12px;color:var(--ok)">✓ Your part is complete</span>` : ''}
@@ -1593,14 +1626,16 @@ async function markNotifRead(id, el) {
 // ── Open/close modal ───────────────────────────────────────────
 async function openTaskModal(taskId = null) {
   editingTaskId = taskId;
+  pendingFiles = [];
+  renderPendingFiles();
   const modal = document.getElementById('task-modal');
   modal.style.display = 'flex';
 
   document.getElementById('task-modal-title').textContent = taskId ? 'Edit Task' : 'New Task';
   document.getElementById('task-delete-btn').style.display = taskId ? 'inline-flex' : 'none';
 
-  // Load members for assignment
   await loadMembersForAssignment(taskId);
+  await loadExistingFiles(taskId);
 
   if (taskId) {
     const task = allTasks.find(t => t.id === taskId);
@@ -1619,6 +1654,7 @@ async function openTaskModal(taskId = null) {
     document.getElementById('task-priority').value = 'medium';
     document.getElementById('task-due-date').value = '';
     document.getElementById('task-due-time').value = '';
+    document.getElementById('existing-files').innerHTML = '';
   }
 }
 
@@ -1738,6 +1774,11 @@ async function saveTask() {
     }
 
     closeTaskModal();
+    // Upload any pending files
+    if (taskId && pendingFiles.length > 0) {
+      toast('Uploading files...');
+      await uploadTaskFiles(taskId);
+    }
     await loadTasks();
     toast(editingTaskId ? '✓ Task updated!' : '✓ Task created!');
   } catch(e) {
@@ -1789,6 +1830,181 @@ async function markMyTaskDone(taskId) {
     await loadTasks();
     toast('✓ Marked as complete!');
   } catch(e) { toast('Failed to update'); }
+}
+
+// ══════════════════════════════════════════════════════════════
+// FILE ATTACHMENTS
+// ══════════════════════════════════════════════════════════════
+
+let pendingFiles = []; // files queued before task is saved
+
+const FILE_ICONS = {
+  pdf: '📄', png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️',
+  mp4: '🎬', mov: '🎬', mp3: '🎵', wav: '🎵', m4a: '🎵', default: '📎'
+};
+
+function getFileIcon(name) {
+  const ext = name.split('.').pop().toLowerCase();
+  return FILE_ICONS[ext] || FILE_ICONS.default;
+}
+
+function formatBytes(bytes) {
+  if (!bytes) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// ── File selection ─────────────────────────────────────────────
+function handleFileSelect(input) {
+  const files = Array.from(input.files);
+  addPendingFiles(files);
+  input.value = ''; // reset so same file can be added again
+}
+
+function handleFileDrop(event) {
+  event.preventDefault();
+  document.getElementById('task-file-drop').style.borderColor = 'var(--bdr2)';
+  const files = Array.from(event.dataTransfer.files);
+  addPendingFiles(files);
+}
+
+function addPendingFiles(files) {
+  const maxSize = 50 * 1024 * 1024; // 50MB
+  const allowed = ['pdf','png','jpg','jpeg','gif','mp4','mov','mp3','wav','m4a'];
+  for (const file of files) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!allowed.includes(ext)) { toast(`❌ ${file.name} — file type not allowed`); continue; }
+    if (file.size > maxSize) { toast(`❌ ${file.name} — exceeds 50MB limit`); continue; }
+    pendingFiles.push(file);
+  }
+  renderPendingFiles();
+}
+
+function renderPendingFiles() {
+  const container = document.getElementById('pending-files');
+  if (!pendingFiles.length) { container.innerHTML = ''; return; }
+  container.innerHTML = pendingFiles.map((f, i) => `
+    <div class="file-item">
+      <span class="file-icon">${getFileIcon(f.name)}</span>
+      <div class="file-info">
+        <div class="file-name">${esc(f.name)}</div>
+        <div class="file-size">${formatBytes(f.size)} — pending upload</div>
+      </div>
+      <button onclick="removePendingFile(${i})" style="background:none;border:none;color:var(--mt);cursor:pointer;font-size:16px;padding:4px">×</button>
+    </div>`).join('');
+}
+
+function removePendingFile(index) {
+  pendingFiles.splice(index, 1);
+  renderPendingFiles();
+}
+
+// ── Upload pending files after task is saved ───────────────────
+async function uploadTaskFiles(taskId) {
+  if (!pendingFiles.length) return;
+  for (const file of pendingFiles) {
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const storagePath = `${taskId}/${Date.now()}_${safeName}`;
+
+      // Upload to Supabase Storage
+      const uploadRes = await fetch(`${SB_URL}/storage/v1/object/task-files/${storagePath}`, {
+        method: 'POST',
+        headers: {
+          'apikey': SB_KEY,
+          'Authorization': `Bearer ${SB_KEY}`,
+          'Content-Type': file.type || 'application/octet-stream',
+          'x-upsert': 'true'
+        },
+        body: file
+      });
+      if (!uploadRes.ok) throw new Error('Upload failed for ' + file.name);
+
+      const fileUrl = `${SB_URL}/storage/v1/object/public/task-files/${storagePath}`;
+
+      // Save record to task_files table
+      await fetch(`${SB_URL}/rest/v1/task_files`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_id: taskId,
+          uploaded_by: currentUser.id,
+          file_name: file.name,
+          file_type: ext,
+          file_size: file.size,
+          file_url: fileUrl,
+          storage_path: storagePath
+        })
+      });
+    } catch(e) {
+      toast(`Failed to upload ${file.name}: ${e.message}`);
+      console.error(e);
+    }
+  }
+  pendingFiles = [];
+  renderPendingFiles();
+}
+
+// ── Load existing files for a task ────────────────────────────
+async function loadExistingFiles(taskId) {
+  const container = document.getElementById('existing-files');
+  container.innerHTML = '';
+  if (!taskId) return;
+  try {
+    const files = await sbGet(`task_files?task_id=eq.${taskId}&order=created_at.asc`);
+    if (!files || !files.length) return;
+    container.innerHTML = `
+      <div style="font-size:11px;color:var(--mt);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.5px">Attached files</div>
+      ${files.map(f => `
+        <div class="file-item">
+          <span class="file-icon">${getFileIcon(f.file_name)}</span>
+          <div class="file-info">
+            <div class="file-name">${esc(f.file_name)}</div>
+            <div class="file-size">${formatBytes(f.file_size)}</div>
+          </div>
+          <a href="${f.file_url}" target="_blank" class="btn bg bs" style="text-decoration:none">⬇️ Open</a>
+          <button onclick="deleteTaskFile('${f.id}','${f.storage_path}',this.closest('.file-item'))" style="background:none;border:none;color:var(--mt);cursor:pointer;font-size:16px;padding:4px">×</button>
+        </div>`).join('')}`;
+  } catch(e) { console.error('Load files error:', e); }
+}
+
+// ── Delete a file ──────────────────────────────────────────────
+async function deleteTaskFile(fileId, storagePath, el) {
+  if (!confirm('Remove this file?')) return;
+  try {
+    // Delete from storage
+    await fetch(`${SB_URL}/storage/v1/object/task-files/${storagePath}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    // Delete record
+    await fetch(`${SB_URL}/rest/v1/task_files?id=eq.${fileId}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    el.remove();
+    toast('File removed');
+  } catch(e) { toast('Failed to remove file'); }
+}
+
+// ── Show files on task cards ───────────────────────────────────
+async function loadFilesForTask(taskId, container) {
+  try {
+    const files = await sbGet(`task_files?task_id=eq.${taskId}&order=created_at.asc`);
+    if (!files || !files.length) return;
+    container.innerHTML = `
+      <div style="margin-top:10px;border-top:1px solid var(--bdr);padding-top:10px">
+        <div style="font-size:11px;color:var(--mt);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📎 Attachments (${files.length})</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">
+          ${files.map(f => `
+            <a href="${f.file_url}" target="_blank" style="display:inline-flex;align-items:center;gap:6px;background:var(--sur3);border:1px solid var(--bdr2);border-radius:var(--rs);padding:6px 10px;text-decoration:none;color:var(--tx);font-size:12px;transition:all .15s" onmouseover="this.style.borderColor='var(--ac)'" onmouseout="this.style.borderColor='var(--bdr2)'">
+              ${getFileIcon(f.file_name)} ${esc(f.file_name)} <span style="color:var(--mt)">${formatBytes(f.file_size)}</span>
+            </a>`).join('')}
+        </div>
+      </div>`;
+  } catch(e) {}
 }
 </script>
 </body>

@@ -109,6 +109,35 @@
     .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
     .stat { background: var(--sur); border: 1px solid var(--bdr); border-radius: var(--rs); padding: 14px 16px; }
     .stat-num { font-size: 24px; font-weight: 600; }
+    /* ── Task cards ── */
+    .task-card { background:var(--sur2); border:1px solid var(--bdr); border-radius:var(--r); padding:16px; margin-bottom:10px; }
+    .task-card.overdue { border-color:rgba(239,68,68,.4); }
+    .task-card.done { opacity:.6; }
+    .task-header { display:flex; align-items:flex-start; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+    .task-title { font-size:14px; font-weight:600; flex:1; min-width:0; }
+    .task-title.done { text-decoration:line-through; color:var(--mt); }
+    .task-meta { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:8px; }
+    .task-due { font-size:12px; color:var(--mt); display:flex; align-items:center; gap:4px; }
+    .task-due.overdue { color:#f87171; }
+    .task-due.soon { color:var(--warn); }
+    .task-desc { font-size:13px; color:var(--mt); line-height:1.6; margin-bottom:10px; }
+    .task-assignees { display:flex; gap:6px; flex-wrap:wrap; margin-top:8px; }
+    .assignee-chip { display:flex; align-items:center; gap:6px; background:var(--sur3); border-radius:999px; padding:4px 10px 4px 6px; font-size:12px; }
+    .assignee-avatar { width:20px; height:20px; border-radius:50%; background:var(--ac); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:600; color:#fff; overflow:hidden; flex-shrink:0; }
+    .assignee-avatar img { width:100%; height:100%; object-fit:cover; }
+    .task-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+    .priority-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+    .p-low { background:#34d399; }
+    .p-medium { background:#fbbf24; }
+    .p-high { background:#f97316; }
+    .p-urgent { background:#ef4444; }
+    .cat-badge { font-size:11px; padding:2px 8px; border-radius:999px; background:var(--sur3); color:var(--mt); }
+    .notif-item { background:rgba(124,111,247,.08); border:1px solid rgba(124,111,247,.2); border-radius:var(--rs); padding:10px 14px; margin-bottom:8px; font-size:13px; display:flex; align-items:center; gap:10px; }
+    .notif-item.unread { border-color:var(--ac); }
+    .member-assign-row { display:flex; align-items:center; gap:10px; padding:6px 0; border-bottom:1px solid var(--bdr); }
+    .member-assign-row:last-child { border-bottom:none; }
+    .member-assign-row input[type=checkbox] { width:16px; height:16px; flex-shrink:0; accent-color:var(--ac); }
+
     .stat-label { font-size: 11px; color: var(--mt); margin-top: 3px; }
 
     /* ── Auth screens ── */
@@ -251,6 +280,7 @@
       Synched Studios <small>Content CRM</small>
     </div>
     <button class="nav active" onclick="showPage('inbox',this)">📥 Inbox <span class="badge" id="inbox-badge"></span></button>
+    <button class="nav" onclick="showPage('tasks',this)">✅ Tasks <span class="badge" id="tasks-badge"></span></button>
     <button class="nav" onclick="showPage('analyze',this)">🔍 Analyze a Link</button>
     <button class="nav" onclick="showPage('watchlist',this)">👁️ Watch List</button>
     <button class="nav" onclick="showPage('settings',this)">⚙️ Settings</button>
@@ -491,6 +521,44 @@
       </div>
     </div>
 
+    <!-- TASKS -->
+    <div id="page-tasks" class="page">
+      <div class="topbar">
+        <div><h1>Tasks <span class="badge" id="tasks-topbar-badge" style="display:none;background:var(--ac);color:#fff;font-size:11px;padding:2px 8px;border-radius:999px;margin-left:8px"></span></h1><p>Organize goals, responsibilities and deadlines</p></div>
+        <button class="btn bp bs" id="new-task-btn" onclick="openTaskModal()" style="display:none">+ New Task</button>
+      </div>
+      <div class="content">
+
+        <!-- Notifications banner -->
+        <div id="task-notifications-bar" style="display:none;margin-bottom:14px"></div>
+
+        <!-- Category filter -->
+        <div class="filter-row" id="task-filter-row">
+          <button class="filter-btn active" onclick="setTaskFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setTaskFilter('work',this)">💼 Work</button>
+          <button class="filter-btn" onclick="setTaskFilter('travel',this)">✈️ Travel</button>
+          <button class="filter-btn" onclick="setTaskFilter('wedding',this)">💍 Wedding</button>
+          <button class="filter-btn" onclick="setTaskFilter('bucket_list',this)">🌟 Bucket List</button>
+          <button class="filter-btn" onclick="setTaskFilter('health',this)">💪 Health</button>
+          <button class="filter-btn" onclick="setTaskFilter('creative',this)">🎨 Creative</button>
+          <button class="filter-btn" onclick="setTaskFilter('personal',this)">🏠 Personal</button>
+          <button class="filter-btn" onclick="setTaskFilter('finance',this)">💰 Finance</button>
+        </div>
+
+        <!-- Status tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <button class="filter-btn active" id="status-tab-all" onclick="setStatusFilter('all',this)">All</button>
+          <button class="filter-btn" id="status-tab-todo" onclick="setStatusFilter('todo',this)">To Do</button>
+          <button class="filter-btn" id="status-tab-in_progress" onclick="setStatusFilter('in_progress',this)">In Progress</button>
+          <button class="filter-btn" id="status-tab-done" onclick="setStatusFilter('done',this)">Done</button>
+        </div>
+
+        <div id="task-list" class="post-list">
+          <div class="empty"><div class="empty-icon">✅</div>No tasks yet.</div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -502,13 +570,14 @@
       <span class="bbadge" id="inbox-badge-mobile"></span>
       Inbox
     </button>
+    <button class="bnav" id="bnav-tasks" onclick="showPageMobile('tasks', this)">
+      <span class="bicon">✅</span>
+      <span class="bbadge" id="tasks-badge-mobile"></span>
+      Tasks
+    </button>
     <button class="bnav" id="bnav-analyze" onclick="showPageMobile('analyze', this)">
       <span class="bicon">🔍</span>
       Analyze
-    </button>
-    <button class="bnav" id="bnav-watchlist" onclick="showPageMobile('watchlist', this)">
-      <span class="bicon">👁️</span>
-      Watch
     </button>
     <button class="bnav" id="bnav-settings" onclick="showPageMobile('settings', this)">
       <span class="bicon">⚙️</span>
@@ -520,6 +589,64 @@
     </button>
   </div>
 </nav>
+
+<!-- Task Modal -->
+<div id="task-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:28px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h2 style="font-size:16px;font-weight:600" id="task-modal-title">New Task</h2>
+      <button onclick="closeTaskModal()" style="background:none;border:none;color:var(--mt);font-size:20px;cursor:pointer;line-height:1">×</button>
+    </div>
+
+    <div class="fr"><label>Task title *</label><input type="text" id="task-title" placeholder="e.g. Book flights to Bali" /></div>
+    <div class="fr"><label>Description</label><textarea id="task-desc" placeholder="Details, notes, links..."></textarea></div>
+
+    <div class="fg">
+      <div class="fr">
+        <label>Category</label>
+        <select id="task-category">
+          <option value="work">💼 Work</option>
+          <option value="travel">✈️ Travel</option>
+          <option value="wedding">💍 Wedding</option>
+          <option value="bucket_list">🌟 Bucket List</option>
+          <option value="health">💪 Health</option>
+          <option value="creative">🎨 Creative</option>
+          <option value="personal">🏠 Personal</option>
+          <option value="finance">💰 Finance</option>
+          <option value="relationship">❤️ Relationship</option>
+          <option value="other">📌 Other</option>
+        </select>
+      </div>
+      <div class="fr">
+        <label>Priority</label>
+        <select id="task-priority">
+          <option value="low">🟢 Low</option>
+          <option value="medium" selected>🟡 Medium</option>
+          <option value="high">🟠 High</option>
+          <option value="urgent">🔴 Urgent</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="fg">
+      <div class="fr"><label>Due date</label><input type="date" id="task-due-date" /></div>
+      <div class="fr"><label>Due time (optional)</label><input type="time" id="task-due-time" /></div>
+    </div>
+
+    <div class="fr">
+      <label>Assign members</label>
+      <div id="task-members-list" style="display:flex;flex-direction:column;gap:8px;background:var(--sur2);border:1px solid var(--bdr2);border-radius:var(--rs);padding:10px;max-height:180px;overflow-y:auto">
+        <div style="font-size:12px;color:var(--mt)">Loading members...</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn bp" onclick="saveTask()" id="task-save-btn">💾 Save Task</button>
+      <button class="btn bg" onclick="closeTaskModal()">Cancel</button>
+      <button class="btn br bs" id="task-delete-btn" onclick="deleteTask()" style="display:none;margin-left:auto">🗑️ Delete</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
@@ -698,7 +825,11 @@ async function enterApp() {
   await loadAllFromSupabase(SB_URL, SB_KEY);
   updateKeyIndicators();
   loadInbox();
+  loadTasks();
   if (cfg.brand) sv('analyze-brand', cfg.brand);
+  // Show New Task button for admins
+  const newBtn = document.getElementById('new-task-btn');
+  if (newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
 }
 
 // ── Update profile UI everywhere ──────────────────────────────
@@ -921,11 +1052,15 @@ function showPage(name,btn){
   document.querySelectorAll('.bnav').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   if(btn) btn.classList.add('active');
-  // Sync mobile bottom nav
   const mobileBtn=document.getElementById('bnav-'+name);
   if(mobileBtn) mobileBtn.classList.add('active');
   if(name==='inbox') loadInbox();
   if(name==='watchlist') loadSources();
+  if(name==='tasks'){
+    loadTasks();
+    const newBtn = document.getElementById('new-task-btn');
+    if(newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
+  }
   if(name==='settings') updateKeyIndicators();
 }
 
@@ -935,13 +1070,14 @@ function showPageMobile(name, btn){
   document.querySelectorAll('.bnav').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   btn.classList.add('active');
-  // Sync desktop sidebar
-  const desktopBtns=document.querySelectorAll('.nav');
-  desktopBtns.forEach(b=>{ if(b.textContent.toLowerCase().includes(name.substring(0,4))) b.classList.add('active'); });
   if(name==='inbox') loadInbox();
   if(name==='watchlist') loadSources();
+  if(name==='tasks'){
+    loadTasks();
+    const newBtn = document.getElementById('new-task-btn');
+    if(newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
+  }
   if(name==='settings') updateKeyIndicators();
-  // Scroll to top
   document.querySelector('.main').scrollTo(0,0);
 }
 
@@ -1264,6 +1400,396 @@ function formatDate(iso){if(!iso)return'';return new Date(iso).toLocaleDateStrin
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escA(s){return String(s||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;').replace(/\n/g,' ');}
+
+// ══════════════════════════════════════════════════════════════
+// TASKS SYSTEM
+// ══════════════════════════════════════════════════════════════
+
+let allTasks = [];
+let allMembers = [];
+let currentTaskFilter = 'all';
+let currentStatusFilter = 'all';
+let editingTaskId = null;
+
+const CATEGORY_ICONS = {
+  work:'💼', travel:'✈️', wedding:'💍', bucket_list:'🌟',
+  health:'💪', creative:'🎨', personal:'🏠', finance:'💰',
+  relationship:'❤️', other:'📌'
+};
+
+const PRIORITY_COLORS = { low:'p-low', medium:'p-medium', high:'p-high', urgent:'p-urgent' };
+const PRIORITY_LABELS = { low:'🟢 Low', medium:'🟡 Medium', high:'🟠 High', urgent:'🔴 Urgent' };
+const STATUS_LABELS = { todo:'To Do', in_progress:'In Progress', done:'Done', cancelled:'Cancelled' };
+
+// ── Load tasks ─────────────────────────────────────────────────
+async function loadTasks() {
+  try {
+    const tasks = await sbGet('tasks?select=*,task_assignments(user_id,responsibility,completed,crm_users(id,name,avatar_url))&order=due_date.asc.nullslast,created_at.desc');
+    allTasks = tasks || [];
+    renderTasks();
+    updateTasksBadge();
+    await loadTaskNotifications();
+  } catch(e) {
+    console.error('Load tasks error:', e);
+    document.getElementById('task-list').innerHTML = '<div class="empty"><div class="empty-icon">✅</div>No tasks yet.</div>';
+  }
+}
+
+// ── Render tasks ───────────────────────────────────────────────
+function renderTasks() {
+  const container = document.getElementById('task-list');
+  const isAdmin = currentUser?.role === 'admin';
+
+  let filtered = allTasks;
+
+  // Filter by category
+  if (currentTaskFilter !== 'all') {
+    filtered = filtered.filter(t => t.category === currentTaskFilter);
+  }
+
+  // Filter by status
+  if (currentStatusFilter !== 'all') {
+    filtered = filtered.filter(t => t.status === currentStatusFilter);
+  }
+
+  // Members only see tasks assigned to them
+  if (!isAdmin) {
+    filtered = filtered.filter(t =>
+      t.task_assignments?.some(a => a.user_id === currentUser?.id)
+    );
+  }
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">✅</div>No tasks found.</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(task => renderTaskCard(task, isAdmin)).join('');
+}
+
+function renderTaskCard(task, isAdmin) {
+  const assignments = task.task_assignments || [];
+  const myAssignment = assignments.find(a => a.user_id === currentUser?.id);
+  const isDone = task.status === 'done';
+  const isOverdue = task.due_date && !isDone && new Date(task.due_date) < new Date();
+  const isSoon = task.due_date && !isDone && !isOverdue && (new Date(task.due_date) - new Date()) < 3 * 24 * 60 * 60 * 1000;
+
+  const dueDateStr = task.due_date ? formatDueDate(task.due_date, task.due_time) : '';
+  const catIcon = CATEGORY_ICONS[task.category] || '📌';
+
+  const assigneesHtml = assignments.map(a => {
+    const u = a.crm_users;
+    if (!u) return '';
+    const initials = (u.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    const avatarHtml = u.avatar_url
+      ? `<img src="${u.avatar_url}" />`
+      : initials;
+    const respText = a.responsibility ? ` — ${a.responsibility}` : '';
+    const doneCheck = a.completed ? '✓ ' : '';
+    return `<div class="assignee-chip" title="${esc(u.name)}${respText}">
+      <div class="assignee-avatar">${avatarHtml}</div>
+      <span style="color:${a.completed ? 'var(--ok)' : 'var(--tx)'}">${doneCheck}${esc(u.name)}</span>
+    </div>`;
+  }).join('');
+
+  const canComplete = myAssignment && !myAssignment.completed;
+  const myCompleted = myAssignment?.completed;
+
+  return `<div class="task-card ${isOverdue ? 'overdue' : ''} ${isDone ? 'done' : ''}">
+    <div class="task-header">
+      <div class="priority-dot ${PRIORITY_COLORS[task.priority] || 'p-medium'}"></div>
+      <div class="task-title ${isDone ? 'done' : ''}">${esc(task.title)}</div>
+      <span class="cat-badge">${catIcon} ${task.category.replace('_',' ')}</span>
+    </div>
+    ${task.description ? `<div class="task-desc">${esc(task.description)}</div>` : ''}
+    <div class="task-meta">
+      ${dueDateStr ? `<span class="task-due ${isOverdue ? 'overdue' : ''} ${isSoon ? 'soon' : ''}">
+        📅 ${dueDateStr}${isOverdue ? ' — Overdue!' : isSoon ? ' — Due soon!' : ''}
+      </span>` : ''}
+      <span style="font-size:12px;color:var(--mt)">● ${STATUS_LABELS[task.status] || task.status}</span>
+      <span style="font-size:12px;color:var(--mt)">${PRIORITY_LABELS[task.priority] || task.priority}</span>
+    </div>
+    ${assignments.length ? `<div class="task-assignees">${assigneesHtml}</div>` : ''}
+    <div class="task-actions">
+      ${canComplete ? `<button class="btn bp bs" onclick="markMyTaskDone('${task.id}')">✓ Mark my part done</button>` : ''}
+      ${myCompleted ? `<span style="font-size:12px;color:var(--ok)">✓ Your part is complete</span>` : ''}
+      ${isAdmin ? `
+        <button class="btn bg bs" onclick="openTaskModal('${task.id}')">✏️ Edit</button>
+        <button class="btn bg bs" onclick="updateTaskStatus('${task.id}','${task.status}')">
+          ${task.status === 'todo' ? '▶ Start' : task.status === 'in_progress' ? '✓ Complete' : '↺ Reopen'}
+        </button>
+      ` : ''}
+    </div>
+  </div>`;
+}
+
+function formatDueDate(date, time) {
+  const d = new Date(date + (time ? 'T' + time : 'T00:00:00'));
+  const opts = { weekday:'short', month:'short', day:'numeric', year:'numeric' };
+  const dateStr = d.toLocaleDateString('en-US', opts);
+  const timeStr = time ? ' at ' + d.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' }) : '';
+  return dateStr + timeStr;
+}
+
+// ── Task filters ───────────────────────────────────────────────
+function setTaskFilter(filter, btn) {
+  currentTaskFilter = filter;
+  document.querySelectorAll('#task-filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTasks();
+}
+
+function setStatusFilter(filter, btn) {
+  currentStatusFilter = filter;
+  document.querySelectorAll('[id^="status-tab-"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTasks();
+}
+
+// ── Task badge ─────────────────────────────────────────────────
+function updateTasksBadge() {
+  const isAdmin = currentUser?.role === 'admin';
+  let myTasks = isAdmin
+    ? allTasks.filter(t => t.status !== 'done' && t.status !== 'cancelled')
+    : allTasks.filter(t => t.task_assignments?.some(a => a.user_id === currentUser?.id && !a.completed) && t.status !== 'done');
+
+  const count = myTasks.length;
+  const badge = document.getElementById('tasks-badge');
+  const badgeMobile = document.getElementById('tasks-badge-mobile');
+  const topbarBadge = document.getElementById('tasks-topbar-badge');
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none'; }
+  if (badgeMobile) { badgeMobile.textContent = count; badgeMobile.style.display = count > 0 ? 'inline' : 'none'; }
+  if (topbarBadge) { topbarBadge.textContent = count; topbarBadge.style.display = count > 0 ? 'inline' : 'none'; }
+}
+
+// ── Notifications ──────────────────────────────────────────────
+async function loadTaskNotifications() {
+  if (!currentUser) return;
+  try {
+    const notifs = await sbGet(`task_notifications?user_id=eq.${currentUser.id}&read=eq.false&order=created_at.desc&limit=5`);
+    const bar = document.getElementById('task-notifications-bar');
+    if (!notifs || !notifs.length) { bar.style.display = 'none'; return; }
+    bar.style.display = 'block';
+    bar.innerHTML = notifs.map(n => `
+      <div class="notif-item unread">
+        <span style="font-size:18px">${n.type === 'assigned' ? '📋' : n.type === 'deadline' ? '⏰' : '🔔'}</span>
+        <span style="flex:1;font-size:13px">${esc(n.message)}</span>
+        <button class="btn bg bs" onclick="markNotifRead('${n.id}',this.parentElement)">✓</button>
+      </div>`).join('');
+  } catch(e) { console.error('Notifs error:', e); }
+}
+
+async function markNotifRead(id, el) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/task_notifications?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ read: true })
+    });
+    el.remove();
+  } catch(e) {}
+}
+
+// ── Open/close modal ───────────────────────────────────────────
+async function openTaskModal(taskId = null) {
+  editingTaskId = taskId;
+  const modal = document.getElementById('task-modal');
+  modal.style.display = 'flex';
+
+  document.getElementById('task-modal-title').textContent = taskId ? 'Edit Task' : 'New Task';
+  document.getElementById('task-delete-btn').style.display = taskId ? 'inline-flex' : 'none';
+
+  // Load members for assignment
+  await loadMembersForAssignment(taskId);
+
+  if (taskId) {
+    const task = allTasks.find(t => t.id === taskId);
+    if (task) {
+      document.getElementById('task-title').value = task.title || '';
+      document.getElementById('task-desc').value = task.description || '';
+      document.getElementById('task-category').value = task.category || 'work';
+      document.getElementById('task-priority').value = task.priority || 'medium';
+      document.getElementById('task-due-date').value = task.due_date || '';
+      document.getElementById('task-due-time').value = task.due_time || '';
+    }
+  } else {
+    document.getElementById('task-title').value = '';
+    document.getElementById('task-desc').value = '';
+    document.getElementById('task-category').value = 'work';
+    document.getElementById('task-priority').value = 'medium';
+    document.getElementById('task-due-date').value = '';
+    document.getElementById('task-due-time').value = '';
+  }
+}
+
+function closeTaskModal() {
+  document.getElementById('task-modal').style.display = 'none';
+  editingTaskId = null;
+}
+
+async function loadMembersForAssignment(taskId) {
+  const container = document.getElementById('task-members-list');
+  try {
+    const members = await sbGet('crm_users?select=id,name,avatar_url,role&order=name.asc');
+    allMembers = members || [];
+
+    const existingAssignments = taskId
+      ? (allTasks.find(t => t.id === taskId)?.task_assignments || [])
+      : [];
+
+    container.innerHTML = members.map(m => {
+      const existing = existingAssignments.find(a => a.user_id === m.id);
+      const initials = (m.name || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+      const avatarHtml = m.avatar_url
+        ? `<img src="${m.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`
+        : initials;
+      return `<div class="member-assign-row">
+        <input type="checkbox" id="assign-${m.id}" ${existing ? 'checked' : ''} />
+        <div class="assignee-avatar" style="width:28px;height:28px;font-size:11px">${avatarHtml}</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:500">${esc(m.name)}</div>
+          <div style="font-size:11px;color:var(--mt)">${m.role}</div>
+        </div>
+        <input type="text" id="resp-${m.id}" placeholder="Their responsibility..." value="${esc(existing?.responsibility || '')}"
+          style="width:160px;font-size:12px;padding:6px 10px" />
+      </div>`;
+    }).join('') || '<div style="color:var(--mt);font-size:12px">No members found</div>';
+  } catch(e) {
+    container.innerHTML = '<div style="color:var(--mt);font-size:12px">Failed to load members</div>';
+  }
+}
+
+// ── Save task ──────────────────────────────────────────────────
+async function saveTask() {
+  const title = document.getElementById('task-title').value.trim();
+  if (!title) { toast('Please enter a task title'); return; }
+
+  const btn = document.getElementById('task-save-btn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Saving...';
+
+  try {
+    const taskData = {
+      title,
+      description: document.getElementById('task-desc').value.trim(),
+      category: document.getElementById('task-category').value,
+      priority: document.getElementById('task-priority').value,
+      due_date: document.getElementById('task-due-date').value || null,
+      due_time: document.getElementById('task-due-time').value || null,
+      updated_at: new Date().toISOString()
+    };
+
+    let taskId = editingTaskId;
+
+    if (editingTaskId) {
+      // Update existing
+      await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${editingTaskId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+      });
+    } else {
+      // Create new
+      taskData.created_by = currentUser.id;
+      taskData.status = 'todo';
+      const res = await fetch(`${SB_URL}/rest/v1/tasks`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+        body: JSON.stringify(taskData)
+      });
+      const created = await res.json();
+      taskId = created[0]?.id;
+    }
+
+    // Handle assignments
+    if (taskId) {
+      // Delete existing assignments first if editing
+      if (editingTaskId) {
+        await fetch(`${SB_URL}/rest/v1/task_assignments?task_id=eq.${taskId}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+      }
+
+      // Create new assignments
+      const assignedMembers = allMembers.filter(m => document.getElementById(`assign-${m.id}`)?.checked);
+      for (const member of assignedMembers) {
+        const responsibility = document.getElementById(`resp-${member.id}`)?.value.trim() || null;
+        await fetch(`${SB_URL}/rest/v1/task_assignments`, {
+          method: 'POST',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ task_id: taskId, user_id: member.id, responsibility })
+        });
+
+        // Send notification if new task
+        if (!editingTaskId && member.id !== currentUser.id) {
+          const dueStr = taskData.due_date ? ` — due ${formatDueDate(taskData.due_date, taskData.due_time)}` : '';
+          await fetch(`${SB_URL}/rest/v1/task_notifications`, {
+            method: 'POST',
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: member.id,
+              task_id: taskId,
+              type: 'assigned',
+              message: `You've been assigned to "${title}"${dueStr}${responsibility ? '. Your role: ' + responsibility : ''}`
+            })
+          });
+        }
+      }
+    }
+
+    closeTaskModal();
+    await loadTasks();
+    toast(editingTaskId ? '✓ Task updated!' : '✓ Task created!');
+  } catch(e) {
+    toast('Failed to save task: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false; btn.innerHTML = '💾 Save Task';
+  }
+}
+
+// ── Delete task ────────────────────────────────────────────────
+async function deleteTask() {
+  if (!editingTaskId) return;
+  if (!confirm('Delete this task? This cannot be undone.')) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${editingTaskId}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    closeTaskModal();
+    await loadTasks();
+    toast('Task deleted');
+  } catch(e) { toast('Failed to delete: ' + e.message); }
+}
+
+// ── Update task status ─────────────────────────────────────────
+async function updateTaskStatus(taskId, currentStatus) {
+  const next = currentStatus === 'todo' ? 'in_progress' : currentStatus === 'in_progress' ? 'done' : 'todo';
+  try {
+    await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: next, updated_at: new Date().toISOString() })
+    });
+    await loadTasks();
+    toast(`✓ Task marked as ${STATUS_LABELS[next]}`);
+  } catch(e) { toast('Failed to update status'); }
+}
+
+// ── Mark my part done ──────────────────────────────────────────
+async function markMyTaskDone(taskId) {
+  if (!currentUser) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/task_assignments?task_id=eq.${taskId}&user_id=eq.${currentUser.id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed: true, completed_at: new Date().toISOString() })
+    });
+    await loadTasks();
+    toast('✓ Marked as complete!');
+  } catch(e) { toast('Failed to update'); }
+}
 </script>
 </body>
 </html>

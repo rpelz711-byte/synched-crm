@@ -796,11 +796,22 @@ const gv=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
 
 // ── Simple hash (not cryptographic but fine for this use case) ──
 async function hashPassword(password) {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(password + 'synched_salt_2026');
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  // Simple hash that works on HTTP and HTTPS
+  const str = password + 'synched_salt_2026';
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  // Make it longer and more unique
+  let result = '';
+  let seed = Math.abs(hash);
+  for (let i = 0; i < 32; i++) {
+    seed = (seed * 1664525 + 1013904223) & 0xffffffff;
+    result += (Math.abs(seed) % 16).toString(16);
+  }
+  return result + Math.abs(hash).toString(16).padStart(8, '0');
 }
 
 // ── Auth tab switch ────────────────────────────────────────────

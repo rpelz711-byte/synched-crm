@@ -250,6 +250,9 @@
       <div class="content">
         <div class="card">
           <div class="card-title">API Keys — saved in your browser only</div>
+          <p style="font-size:12px;color:var(--warn);line-height:1.7;margin-bottom:14px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);padding:10px 14px;border-radius:var(--rs)">
+            ⚠️ <strong style="color:var(--tx)">API keys are saved per browser/device</strong> — you'll need to re-enter them if you switch browsers. This is for security. Your brand name and description sync automatically via Supabase.
+          </p>
           <div class="setting-row">
             <div class="setting-label"><strong>Claude API Key</strong><span>From console.anthropic.com → API Keys</span></div>
             <div class="setting-input"><input type="password" id="cfg-gemini" placeholder="sk-ant-..." /></div>
@@ -303,8 +306,10 @@ const ss=(k,v)=>{if(v)localStorage.setItem(k,v);};
 const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v)e.value=v;};
 const gv=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
 
-window.onload=()=>{
+window.onload=async()=>{
   loadSettings();
+  // Load brand settings from Supabase (persists across browsers)
+  await loadSettingsFromSupabase();
   loadInbox();
   const b=ls('cfg-brand');
   if(b)sv('analyze-brand',b);
@@ -314,10 +319,35 @@ function loadSettings(){
   ['gemini','yt','sb-url','sb-key','brand','desc'].forEach(k=>sv('cfg-'+k,ls('cfg-'+k)));
 }
 
-function saveSettings(){
-  ['gemini','yt','sb-url','sb-key','brand','desc'].forEach(k=>ss('cfg-'+k,gv('cfg-'+k)));
+async function saveSettings(){
+  const keys=['gemini','yt','sb-url','sb-key','brand','desc'];
+  keys.forEach(k=>ss('cfg-'+k,gv('cfg-'+k)));
   sv('analyze-brand',ls('cfg-brand'));
+
+  // Also save non-sensitive settings to Supabase so they persist across browsers
+  // Note: API keys stay in localStorage only for security
+  try{
+    const configs=[
+      {key:'brand',value:gv('cfg-brand')},
+      {key:'brand_desc',value:gv('cfg-desc')}
+    ];
+    for(const c of configs){
+      if(!c.value)continue;
+      await sbFetch('POST','app_config',{key:c.key,value:c.value,updated_at:new Date().toISOString()});
+    }
+  }catch(e){console.log('Supabase config save skipped');}
   toast('✓ Settings saved!');
+}
+
+async function loadSettingsFromSupabase(){
+  try{
+    const data=await sbFetch('GET','app_config?select=*');
+    if(!data)return;
+    for(const row of data){
+      if(row.key==='brand'){ss('cfg-brand',row.value);sv('cfg-brand',row.value);sv('analyze-brand',row.value);}
+      if(row.key==='brand_desc'){ss('cfg-desc',row.value);sv('cfg-desc',row.value);}
+    }
+  }catch(e){console.log('Supabase config load skipped');}
 }
 
 function showPage(name,btn){
@@ -511,9 +541,9 @@ Generate 3 platform-specific posts based on the ACTUAL content above. Return ONL
 {
   "source_title": "short descriptive title of the source content",
   "source_summary": "1-2 sentence summary of what this content is actually about",
-  "instagram": { "caption": "...", "image_prompt": "10-15 word cinematic image description for an AI image generator" },
-  "tiktok": { "caption": "...", "image_prompt": "10-15 word cinematic image description" },
-  "facebook": { "caption": "...", "image_prompt": "10-15 word cinematic image description" }
+  "instagram": { "caption": "...", "image_prompt": "..." },
+  "tiktok": { "caption": "...", "image_prompt": "..." },
+  "facebook": { "caption": "...", "image_prompt": "..." }
 }
 
 Platform rules:
@@ -522,7 +552,14 @@ Platform rules:
 - Facebook: warm and conversational, 100-180 words, story or insight, 1-3 hashtags, CTA to comment
 - Make content feel original to ${brand} — not a repost
 - Base everything on the ACTUAL video/post content provided above
-- image_prompt: cinematic, professional, music/creative industry aesthetic`;
+
+Image prompt rules (VERY IMPORTANT):
+- Must be 20-30 words, highly specific to THIS exact topic/video
+- Include: the specific subject matter, mood, setting, lighting style, and visual aesthetic
+- Reference specific elements FROM the content (e.g. if it's about music production: "music producer at mixing console, warm studio lighting, gold and black tones, analog equipment, cinematic depth of field")
+- Style: cinematic photography, professional, high-end production quality
+- Always end with a visual style like: "golden hour lighting", "dramatic studio lighting", "neon glow", "natural daylight", "moody cinematic"
+- Never write generic prompts like "professional studio setup" — always tie it to the specific topic`;
 
   try{
     const res=await fetch('https://api.anthropic.com/v1/messages',{

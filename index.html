@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Synched Studios — Content CRM</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.383.0/umd/lucide.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -145,6 +146,79 @@
     .file-progress { height:3px; background:var(--bdr2); border-radius:999px; margin-top:6px; overflow:hidden; }
     .file-progress-bar { height:100%; background:var(--ac); border-radius:999px; transition:width .3s; }
 
+    /* ── Lucide icons ── */
+    .icon { display:inline-flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .icon svg { width:16px; height:16px; stroke-width:1.8; }
+    .icon-sm svg { width:14px; height:14px; }
+    .icon-lg svg { width:20px; height:20px; }
+    .icon-xl svg { width:24px; height:24px; }
+    .btn .icon svg { width:15px; height:15px; }
+
+    /* ── Cyberpunk sidebar nav ── */
+    .nav {
+      display:flex; align-items:center; gap:10px;
+      padding:8px 10px; border-radius:6px; cursor:pointer;
+      font-size:12px; font-weight:600; letter-spacing:.4px; text-transform:uppercase;
+      color:var(--mt); border:none; background:none; width:100%; text-align:left;
+      transition:all .2s; position:relative;
+    }
+    .nav:hover { color:var(--tx); background:rgba(124,111,247,.08); }
+    .nav.active { color:var(--ac2); background:rgba(124,111,247,.12); }
+    .nav-icon-wrap {
+      width:32px; height:32px; border-radius:6px;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+      flex-shrink:0; transition:all .2s;
+      position:relative;
+    }
+    .nav-icon-wrap svg { width:15px; height:15px; stroke-width:1.7; }
+    .nav.active .nav-icon-wrap { border-color:currentColor; box-shadow:0 0 10px currentColor; }
+    .nav:hover .nav-icon-wrap { border-color:rgba(255,255,255,.2); }
+
+    /* Nav icon colors per section */
+    .nav[data-page="inbox"] .nav-icon-wrap,
+    .nav[data-page="inbox"].active .nav-icon-wrap { color:#69c9d0; }
+    .nav[data-page="tasks"] .nav-icon-wrap,
+    .nav[data-page="tasks"].active .nav-icon-wrap { color:#34d399; }
+    .nav[data-page="history"] .nav-icon-wrap,
+    .nav[data-page="history"].active .nav-icon-wrap { color:#fbbf24; }
+    .nav[data-page="analyze"] .nav-icon-wrap,
+    .nav[data-page="analyze"].active .nav-icon-wrap { color:#a78bfa; }
+    .nav[data-page="watchlist"] .nav-icon-wrap,
+    .nav[data-page="watchlist"].active .nav-icon-wrap { color:#a78bfa; }
+    .nav[data-page="settings"] .nav-icon-wrap,
+    .nav[data-page="settings"].active .nav-icon-wrap { color:#7c6ff7; }
+
+    /* ── Cyberpunk bottom nav ── */
+    .bnav {
+      flex:1; display:flex; flex-direction:column; align-items:center; gap:4px;
+      padding:10px 4px 16px; border:none; background:none;
+      color:var(--mt); font-size:9px; font-weight:700; letter-spacing:.5px; text-transform:uppercase;
+      cursor:pointer; transition:all .2s; font-family:inherit; -webkit-tap-highlight-color:transparent;
+    }
+    .bnav-icon {
+      width:38px; height:38px; border-radius:8px;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07);
+      transition:all .2s; position:relative;
+    }
+    .bnav-icon svg { width:18px; height:18px; stroke-width:1.7; }
+    .bnav.active .bnav-icon { border-color:currentColor; box-shadow:0 0 12px currentColor; }
+    .bnav[data-page="inbox"] { color:#69c9d0; }
+    .bnav[data-page="tasks"] { color:#34d399; }
+    .bnav[data-page="history"] { color:#fbbf24; }
+    .bnav[data-page="settings"] { color:#7c6ff7; }
+    .bnav[data-page="profile"] { color:#e1306c; }
+    .bnav:not(.active) { color:var(--mt); }
+    .bnav:not(.active) .bnav-icon { box-shadow:none; border-color:rgba(255,255,255,.07); }
+    .bnav.active { color:var(--ac2); }
+    .bnav[data-page="inbox"].active { color:#69c9d0; }
+    .bnav[data-page="tasks"].active { color:#34d399; }
+    .bnav[data-page="history"].active { color:#fbbf24; }
+    .bnav[data-page="settings"].active { color:#7c6ff7; }
+    .bnav[data-page="profile"].active { color:#e1306c; }
+    .bnav .bbadge { background:var(--ac); color:#fff; font-size:9px; font-weight:700; padding:1px 5px; border-radius:999px; display:none; }
+
     .stat-label { font-size: 11px; color: var(--mt); margin-top: 3px; }
 
     /* ── Auth screens ── */
@@ -185,11 +259,6 @@
 
     /* ── Bottom nav (mobile only) ── */
     .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--sur); border-top: 1px solid var(--bdr); z-index: 100; }
-    .bottom-nav-inner { display: flex; }
-    .bnav { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px 18px; border: none; background: none; color: var(--mt); font-size: 10px; cursor: pointer; transition: all .15s; font-family: inherit; -webkit-tap-highlight-color: transparent; }
-    .bnav .bicon { font-size: 22px; line-height: 1; }
-    .bnav.active { color: var(--ac2); }
-    .bnav .bbadge { background: var(--ac); color: #fff; font-size: 9px; font-weight: 700; padding: 1px 5px; border-radius: 999px; display: none; margin-top: -4px; }
 
     /* ── MOBILE ── */
     @media (max-width: 640px) {
@@ -286,12 +355,24 @@
       <img src="./SynchedStudios.png" alt="Synched Studios" style="width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 10px auto;" onerror="this.style.display='none'" />
       Synched Studios <small>Content CRM</small>
     </div>
-    <button class="nav active" onclick="showPage('inbox',this)">📥 Inbox <span class="badge" id="inbox-badge"></span></button>
-    <button class="nav" onclick="showPage('tasks',this)">✅ Tasks <span class="badge" id="tasks-badge"></span></button>
-    <button class="nav" onclick="showPage('history',this)">🗂️ History</button>
-    <button class="nav" onclick="showPage('analyze',this)">🔍 Analyze a Link</button>
-    <button class="nav" onclick="showPage('watchlist',this)">👁️ Watch List</button>
-    <button class="nav" onclick="showPage('settings',this)">⚙️ Settings</button>
+    <button class="nav active" data-page="inbox" onclick="showPage('inbox',this)">
+      <span class="nav-icon-wrap"><i data-lucide="inbox"></i></span> Inbox <span class="badge" id="inbox-badge"></span>
+    </button>
+    <button class="nav" data-page="tasks" onclick="showPage('tasks',this)">
+      <span class="nav-icon-wrap"><i data-lucide="check-square"></i></span> Tasks <span class="badge" id="tasks-badge"></span>
+    </button>
+    <button class="nav" data-page="history" onclick="showPage('history',this)">
+      <span class="nav-icon-wrap"><i data-lucide="clock"></i></span> History
+    </button>
+    <button class="nav" data-page="analyze" onclick="showPage('analyze',this)">
+      <span class="nav-icon-wrap"><i data-lucide="link"></i></span> Analyze a Link
+    </button>
+    <button class="nav" data-page="watchlist" onclick="showPage('watchlist',this)">
+      <span class="nav-icon-wrap"><i data-lucide="eye"></i></span> Watch List
+    </button>
+    <button class="nav" data-page="settings" onclick="showPage('settings',this)">
+      <span class="nav-icon-wrap"><i data-lucide="settings"></i></span> Settings
+    </button>
     <div class="profile-section">
       <button class="profile-btn" onclick="showPage('profile',this)">
         <div class="profile-avatar" id="sidebar-avatar">?</div>
@@ -300,7 +381,9 @@
           <div class="profile-role" id="sidebar-role"></div>
         </div>
       </button>
-      <button class="logout-btn" onclick="doLogout()">🚪 Sign out</button>
+      <button class="logout-btn" onclick="doLogout()">
+        <span class="nav-icon-wrap" style="width:28px;height:28px;color:#f87171"><i data-lucide="log-out"></i></span> Sign out
+      </button>
     </div>
   </aside>
 
@@ -310,14 +393,14 @@
     <div class="mobile-profile" id="mobile-profile-bar">
       <div class="profile-avatar" id="mobile-avatar" style="width:32px;height:32px;font-size:12px">?</div>
       <div style="flex:1"><div style="font-size:13px;font-weight:500" id="mobile-name">Loading...</div></div>
-      <button class="btn br bs" onclick="doLogout()">Sign out</button>
+      <button class="btn br bs" onclick="doLogout()"><span class="icon"><i data-lucide="log-out"></i></span> Sign out</button>
     </div>
 
     <!-- INBOX -->
     <div id="page-inbox" class="page active">
       <div class="topbar">
         <div><h1>Inbox</h1><p>AI-generated content ready to copy and post</p></div>
-        <button class="btn bg bs" onclick="loadInbox()">↺ Refresh</button>
+        <button class="btn bg bs" onclick="loadInbox()"><span class="icon"><i data-lucide="refresh-cw"></i></span> Refresh</button>
       </div>
       <div class="content">
         <div class="info-box">
@@ -358,7 +441,7 @@
             <label>URL — YouTube video, Instagram post, Facebook post, or any article</label>
             <div class="input-row">
               <input id="analyze-url" type="url" placeholder="https://www.youtube.com/watch?v=..." />
-              <button class="btn bp" id="analyze-btn" onclick="analyzeLink()">✨ Generate</button>
+              <button class="btn bp" id="analyze-btn" onclick="analyzeLink()"><span class="icon"><i data-lucide="sparkles"></i></span> Generate</button>
             </div>
           </div>
           <div class="fg">
@@ -393,8 +476,8 @@
           <div class="card-title" style="margin-bottom:8px">Generated Content</div>
           <div class="result-grid" id="result-grid"></div>
           <div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn bp bs" onclick="saveAnalyzed()">💾 Save to Inbox</button>
-            <button class="btn bg bs" onclick="analyzeLink()">🔄 Regenerate</button>
+            <button class="btn bp bs" onclick="saveAnalyzed()"><span class="icon"><i data-lucide="save"></i></span> Save to Inbox</button>
+            <button class="btn bg bs" onclick="analyzeLink()"><span class="icon"><i data-lucide="refresh-cw"></i></span> Regenerate</button>
           </div>
         </div>
       </div>
@@ -418,7 +501,7 @@
             </div>
           </div>
           <div class="fr"><label>URL</label><input id="source-url" type="url" placeholder="https://www.youtube.com/@channelname" /></div>
-          <button class="btn bp" onclick="addSource()">+ Add to Watch List</button>
+          <button class="btn bp" onclick="addSource()"><span class="icon"><i data-lucide="plus-circle"></i></span> Add to Watch List</button>
         </div>
         <div class="banner">
           <strong>Instagram:</strong> Use "Analyze a Link" and paste Instagram post URLs manually — Instagram blocks automatic monitoring.<br>
@@ -482,8 +565,8 @@
           </div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
-          <button class="btn bp" onclick="saveSettings()">💾 Save Settings</button>
-          <button class="btn bg" onclick="loadFromSupabase()">☁️ Load from Supabase</button>
+          <button class="btn bp" onclick="saveSettings()"><span class="icon"><i data-lucide="save"></i></span> Save Settings</button>
+          <button class="btn bg" onclick="loadFromSupabase()"><span class="icon"><i data-lucide="cloud-download"></i></span> Load from Supabase</button>
         </div>
       </div>
     </div>
@@ -522,8 +605,8 @@
           <div class="fr"><label>Bio</label><textarea id="prof-bio" placeholder="Tell us about yourself..."></textarea></div>
           <div class="fr"><label>New password (leave blank to keep current)</label><input type="password" id="prof-password" placeholder="New password" /></div>
           <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button class="btn bp" onclick="saveProfile()">💾 Save Changes</button>
-            <button class="btn br bs" onclick="doLogout()">🚪 Sign out</button>
+            <button class="btn bp" onclick="saveProfile()"><span class="icon"><i data-lucide="save"></i></span> Save Changes</button>
+            <button class="btn br bs" onclick="doLogout()"><span class="icon"><i data-lucide="log-out"></i></span> Sign out</button>
           </div>
         </div>
       </div>
@@ -533,7 +616,7 @@
     <div id="page-tasks" class="page">
       <div class="topbar">
         <div><h1>Tasks <span class="badge" id="tasks-topbar-badge" style="display:none;background:var(--ac);color:#fff;font-size:11px;padding:2px 8px;border-radius:999px;margin-left:8px"></span></h1><p>Organize goals, responsibilities and deadlines</p></div>
-        <button class="btn bp bs" id="new-task-btn" onclick="openTaskModal()" style="display:none">+ New Task</button>
+        <button class="btn bp bs" id="new-task-btn" onclick="openTaskModal()" style="display:none"><span class="icon"><i data-lucide="plus"></i></span> New Task</button>
       </div>
       <div class="content">
 
@@ -572,8 +655,8 @@
       <div class="topbar">
         <div><h1>Task History</h1><p>Completed and verified tasks</p></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn bg bs" onclick="loadHistory()">↺ Refresh</button>
-          <button class="btn br bs" onclick="clearHistory()" id="clear-history-btn">🗑️ Clear History</button>
+          <button class="btn bg bs" onclick="loadHistory()"><span class="icon"><i data-lucide="refresh-cw"></i></span> Refresh</button>
+          <button class="btn br bs" onclick="clearHistory()" id="clear-history-btn"><span class="icon"><i data-lucide="trash-2"></i></span> Clear History</button>
         </div>
       </div>
       <div class="content">
@@ -606,26 +689,26 @@
 <!-- Bottom nav for mobile — outside app div so it doesn't interfere -->
 <nav class="bottom-nav">
   <div class="bottom-nav-inner">
-    <button class="bnav active" id="bnav-inbox" onclick="showPageMobile('inbox', this)">
-      <span class="bicon">📥</span>
+    <button class="bnav active" id="bnav-inbox" data-page="inbox" onclick="showPageMobile('inbox', this)">
+      <div class="bnav-icon"><i data-lucide="inbox"></i></div>
       <span class="bbadge" id="inbox-badge-mobile"></span>
       Inbox
     </button>
-    <button class="bnav" id="bnav-tasks" onclick="showPageMobile('tasks', this)">
-      <span class="bicon">✅</span>
+    <button class="bnav" id="bnav-tasks" data-page="tasks" onclick="showPageMobile('tasks', this)">
+      <div class="bnav-icon"><i data-lucide="check-square"></i></div>
       <span class="bbadge" id="tasks-badge-mobile"></span>
       Tasks
     </button>
-    <button class="bnav" id="bnav-history" onclick="showPageMobile('history', this)">
-      <span class="bicon">🗂️</span>
+    <button class="bnav" id="bnav-history" data-page="history" onclick="showPageMobile('history', this)">
+      <div class="bnav-icon"><i data-lucide="clock"></i></div>
       History
     </button>
-    <button class="bnav" id="bnav-settings" onclick="showPageMobile('settings', this)">
-      <span class="bicon">⚙️</span>
+    <button class="bnav" id="bnav-settings" data-page="settings" onclick="showPageMobile('settings', this)">
+      <div class="bnav-icon"><i data-lucide="settings"></i></div>
       Settings
     </button>
-    <button class="bnav" id="bnav-profile" onclick="showPageMobile('profile', this)">
-      <span class="bicon" id="bnav-profile-icon">👤</span>
+    <button class="bnav" id="bnav-profile" data-page="profile" onclick="showPageMobile('profile', this)">
+      <div class="bnav-icon" id="bnav-profile-icon"><i data-lucide="user-circle"></i></div>
       Profile
     </button>
   </div>
@@ -701,9 +784,9 @@
     </div>
 
     <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap">
-      <button class="btn bp" onclick="saveTask()" id="task-save-btn">💾 Save Task</button>
-      <button class="btn bg" onclick="closeTaskModal()">Cancel</button>
-      <button class="btn br bs" id="task-delete-btn" onclick="deleteTask()" style="display:none;margin-left:auto">🗑️ Delete</button>
+      <button class="btn bp" onclick="saveTask()" id="task-save-btn"><span class="icon"><i data-lucide="save"></i></span> Save Task</button>
+      <button class="btn bg" onclick="closeTaskModal()"><span class="icon"><i data-lucide="x"></i></span> Cancel</button>
+      <button class="btn br bs" id="task-delete-btn" onclick="deleteTask()" style="display:none;margin-left:auto"><span class="icon"><i data-lucide="trash-2"></i></span> Delete</button>
     </div>
   </div>
 </div>
@@ -881,6 +964,7 @@ async function enterApp() {
   document.getElementById('auth-screen').classList.remove('active');
   document.querySelector('.app').style.display = 'flex';
   document.querySelector('.bottom-nav').style.display = 'block';
+  lucide.createIcons();
   updateProfileUI();
   await loadAllFromSupabase(SB_URL, SB_KEY);
   updateKeyIndicators();
@@ -977,6 +1061,7 @@ function showAuthError(form, msg) {
 
 // ── Startup ────────────────────────────────────────────────────
 window.onload = async () => {
+  lucide.createIcons();
   // Hide app initially
   document.querySelector('.app').style.display = 'none';
   document.querySelector('.bottom-nav').style.display = 'none';
@@ -1460,6 +1545,7 @@ async function removeSource(id){
 function copyText(text){navigator.clipboard.writeText(text).then(()=>toast('✓ Copied to clipboard!'));}
 function formatDate(iso){if(!iso)return'';return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);}
+function refreshIcons(){if(typeof lucide!=='undefined') lucide.createIcons();}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function escA(s){return String(s||'').replace(/'/g,"&#39;").replace(/"/g,'&quot;').replace(/\n/g,' ');}
 
@@ -1536,6 +1622,7 @@ function renderTasks() {
     const fileContainer = document.getElementById(`files-${task.id}`);
     if (fileContainer) loadFilesForTask(task.id, fileContainer);
   }
+  refreshIcons();
 }
 
 function renderTaskCard(task, isAdmin) {
@@ -2288,6 +2375,7 @@ function renderHistory() {
     const fc = document.getElementById(`hist-files-${task.id}`);
     if (fc) loadFilesForTask(task.id, fc);
   }
+  refreshIcons();
 }
 
 // ── Clear history ──────────────────────────────────────────────

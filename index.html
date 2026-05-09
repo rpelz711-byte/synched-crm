@@ -657,9 +657,9 @@
         ondrop="handleFileDrop(event)">
         <div style="font-size:28px;margin-bottom:6px">📎</div>
         <div style="font-size:13px;color:var(--mt)">Click or drag & drop files here</div>
-        <div style="font-size:11px;color:var(--mt);margin-top:4px">PDF, PNG, JPG, MP4, MOV, MP3, WAV — max 50MB each</div>
+        <div style="font-size:11px;color:var(--mt);margin-top:4px">PDF, PNG, JPG, MP4, MOV, MP3, WAV, Word, PowerPoint — max 50MB each</div>
         <input type="file" id="task-file-input" multiple
-          accept=".pdf,.png,.jpg,.jpeg,.gif,.mp4,.mov,.mp3,.wav,.m4a"
+          accept=".pdf,.png,.jpg,.jpeg,.gif,.mp4,.mov,.mp3,.wav,.m4a,.doc,.docx,.ppt,.pptx,.xls,.xlsx"
           style="display:none" onchange="handleFileSelect(this)" />
       </div>
       <div id="pending-files" style="margin-top:10px;display:flex;flex-direction:column;gap:6px"></div>
@@ -1840,7 +1840,9 @@ let pendingFiles = []; // files queued before task is saved
 
 const FILE_ICONS = {
   pdf: '📄', png: '🖼️', jpg: '🖼️', jpeg: '🖼️', gif: '🖼️',
-  mp4: '🎬', mov: '🎬', mp3: '🎵', wav: '🎵', m4a: '🎵', default: '📎'
+  mp4: '🎬', mov: '🎬', mp3: '🎵', wav: '🎵', m4a: '🎵',
+  doc: '📝', docx: '📝', ppt: '📊', pptx: '📊',
+  xls: '📈', xlsx: '📈', default: '📎'
 };
 
 function getFileIcon(name) {
@@ -1871,7 +1873,7 @@ function handleFileDrop(event) {
 
 function addPendingFiles(files) {
   const maxSize = 50 * 1024 * 1024; // 50MB
-  const allowed = ['pdf','png','jpg','jpeg','gif','mp4','mov','mp3','wav','m4a'];
+  const allowed = ['pdf','png','jpg','jpeg','gif','mp4','mov','mp3','wav','m4a','doc','docx','ppt','pptx','xls','xlsx'];
   for (const file of files) {
     const ext = file.name.split('.').pop().toLowerCase();
     if (!allowed.includes(ext)) { toast(`❌ ${file.name} — file type not allowed`); continue; }

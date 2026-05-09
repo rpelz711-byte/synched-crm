@@ -2294,19 +2294,19 @@ function renderHistory() {
 async function clearHistory() {
   const isAdmin = currentUser?.role === 'admin';
   const clearWhat = isAdmin
-    ? 'ALL history (verified and cancelled tasks) for everyone'
+    ? 'ALL history (verified, done and cancelled tasks) for everyone'
     : 'your personal history entries';
 
   if (!confirm(`Clear ${clearWhat}? This cannot be undone.`)) return;
 
   try {
     if (isAdmin) {
-      // Delete verified tasks one by one to avoid query syntax issues
-      const toDelete = allHistory.filter(t => t.status === 'verified' || t.status === 'cancelled');
-      if (!toDelete.length) { toast('No history to clear'); return; }
+      // Always fetch fresh from Supabase so we don't rely on allHistory state
+      const fresh = await sbGet('tasks?select=id,status&status=in.(verified,done,cancelled)');
+      if (!fresh || !fresh.length) { toast('No history to clear'); return; }
 
       let deleted = 0;
-      for (const task of toDelete) {
+      for (const task of fresh) {
         try {
           await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${task.id}`, {
             method: 'DELETE',
@@ -2317,20 +2317,22 @@ async function clearHistory() {
       }
       toast(`✓ History cleared — ${deleted} task${deleted !== 1 ? 's' : ''} removed`);
     } else {
-      // Member removes their own assignments from completed tasks
-      const myHistoryIds = allHistory.map(t => t.id);
-      for (const taskId of myHistoryIds) {
-        await fetch(`${SB_URL}/rest/v1/task_assignments?task_id=eq.${taskId}&user_id=eq.${currentUser.id}`, {
+      // Fetch member's history fresh
+      const fresh = await sbGet(`task_assignments?user_id=eq.${currentUser.id}&select=task_id,tasks(status)`);
+      const myDone = (fresh || []).filter(a => ['verified','done','cancelled'].includes(a.tasks?.status));
+      if (!myDone.length) { toast('No history to clear'); return; }
+      for (const a of myDone) {
+        await fetch(`${SB_URL}/rest/v1/task_assignments?task_id=eq.${a.task_id}&user_id=eq.${currentUser.id}`, {
           method: 'DELETE',
           headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
         });
       }
-      toast('✓ Your history cleared');
+      toast(`✓ Your history cleared`);
     }
     allHistory = [];
     await loadHistory();
   } catch(e) {
-    toast('Failed to clear history: ' + e.message);
+    toast('Failed to clear: ' + e.message);
     console.error(e);
   }
 }

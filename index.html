@@ -288,6 +288,7 @@
     </div>
     <button class="nav active" onclick="showPage('inbox',this)">📥 Inbox <span class="badge" id="inbox-badge"></span></button>
     <button class="nav" onclick="showPage('tasks',this)">✅ Tasks <span class="badge" id="tasks-badge"></span></button>
+    <button class="nav" onclick="showPage('history',this)">🗂️ History</button>
     <button class="nav" onclick="showPage('analyze',this)">🔍 Analyze a Link</button>
     <button class="nav" onclick="showPage('watchlist',this)">👁️ Watch List</button>
     <button class="nav" onclick="showPage('settings',this)">⚙️ Settings</button>
@@ -566,6 +567,36 @@
       </div>
     </div>
 
+    <!-- HISTORY -->
+    <div id="page-history" class="page">
+      <div class="topbar">
+        <div><h1>Task History</h1><p>Completed and verified tasks</p></div>
+        <button class="btn bg bs" onclick="loadHistory()">↺ Refresh</button>
+      </div>
+      <div class="content">
+
+        <!-- Stats row -->
+        <div class="stats" id="history-stats" style="margin-bottom:18px">
+          <div class="stat"><div class="stat-num" id="hist-stat-verified">0</div><div class="stat-label">Verified Complete</div></div>
+          <div class="stat"><div class="stat-num" id="hist-stat-done">0</div><div class="stat-label">Awaiting Verification</div></div>
+          <div class="stat"><div class="stat-num" id="hist-stat-cancelled">0</div><div class="stat-label">Cancelled</div></div>
+          <div class="stat"><div class="stat-num" id="hist-stat-total">0</div><div class="stat-label">Total Completed</div></div>
+        </div>
+
+        <!-- Filter tabs -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          <button class="filter-btn active" id="hist-tab-all" onclick="setHistoryFilter('all',this)">All</button>
+          <button class="filter-btn" id="hist-tab-verified" onclick="setHistoryFilter('verified',this)">✅ Verified</button>
+          <button class="filter-btn" id="hist-tab-done" onclick="setHistoryFilter('done',this)" id="admin-verify-tab">⏳ Awaiting Verification</button>
+          <button class="filter-btn" id="hist-tab-cancelled" onclick="setHistoryFilter('cancelled',this)">❌ Cancelled</button>
+        </div>
+
+        <div id="history-list" class="post-list">
+          <div class="empty"><div class="empty-icon">🗂️</div>No history yet.</div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -582,9 +613,9 @@
       <span class="bbadge" id="tasks-badge-mobile"></span>
       Tasks
     </button>
-    <button class="bnav" id="bnav-analyze" onclick="showPageMobile('analyze', this)">
-      <span class="bicon">🔍</span>
-      Analyze
+    <button class="bnav" id="bnav-history" onclick="showPageMobile('history', this)">
+      <span class="bicon">🗂️</span>
+      History
     </button>
     <button class="bnav" id="bnav-settings" onclick="showPageMobile('settings', this)">
       <span class="bicon">⚙️</span>
@@ -1087,6 +1118,7 @@ function showPage(name,btn){
     const newBtn = document.getElementById('new-task-btn');
     if(newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
   }
+  if(name==='history') loadHistory();
   if(name==='settings') updateKeyIndicators();
 }
 
@@ -1103,6 +1135,7 @@ function showPageMobile(name, btn){
     const newBtn = document.getElementById('new-task-btn');
     if(newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
   }
+  if(name==='history') loadHistory();
   if(name==='settings') updateKeyIndicators();
   document.querySelector('.main').scrollTo(0,0);
 }
@@ -1546,11 +1579,21 @@ function renderTaskCard(task, isAdmin) {
     <div class="task-actions">
       ${canComplete ? `<button class="btn bp bs" onclick="markMyTaskDone('${task.id}')">✓ Mark my part done</button>` : ''}
       ${myCompleted ? `<span style="font-size:12px;color:var(--ok)">✓ Your part is complete</span>` : ''}
-      ${isAdmin ? `
+      ${isAdmin && task.status === 'done' ? `
+        <button class="btn bp bs" style="background:var(--ok);border-color:var(--ok)" onclick="verifyTask('${task.id}')">✅ Verify Complete</button>
+      ` : ''}
+      ${isAdmin && task.status !== 'done' && task.status !== 'verified' ? `
         <button class="btn bg bs" onclick="openTaskModal('${task.id}')">✏️ Edit</button>
         <button class="btn bg bs" onclick="updateTaskStatus('${task.id}','${task.status}')">
-          ${task.status === 'todo' ? '▶ Start' : task.status === 'in_progress' ? '✓ Complete' : '↺ Reopen'}
+          ${task.status === 'todo' ? '▶ Start' : task.status === 'in_progress' ? '✓ Mark Done' : '↺ Reopen'}
         </button>
+      ` : ''}
+      ${isAdmin && task.status === 'verified' ? `
+        <span style="font-size:12px;color:var(--ok);font-weight:600">✅ Verified Complete</span>
+        <button class="btn bg bs" onclick="openTaskModal('${task.id}')">✏️ Edit</button>
+      ` : ''}
+      ${isAdmin && (task.status === 'todo' || task.status === 'in_progress') ? `
+        <button class="btn br bs" style="margin-left:auto" onclick="cancelTask('${task.id}')">✕ Cancel</button>
       ` : ''}
     </div>
   </div>`;
@@ -1813,6 +1856,7 @@ async function updateTaskStatus(taskId, currentStatus) {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: next, updated_at: new Date().toISOString() })
     });
+    await logTaskHistory(taskId, currentStatus, next, `Status changed by admin`);
     await loadTasks();
     toast(`✓ Task marked as ${STATUS_LABELS[next]}`);
   } catch(e) { toast('Failed to update status'); }
@@ -1827,8 +1871,42 @@ async function markMyTaskDone(taskId) {
       headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ completed: true, completed_at: new Date().toISOString() })
     });
+
+    // Check if ALL members have completed — if so, auto-move task to 'done' for admin to verify
+    const task = allTasks.find(t => t.id === taskId);
+    if (task?.task_assignments) {
+      const allDone = task.task_assignments.every(a =>
+        a.user_id === currentUser.id ? true : a.completed
+      );
+      if (allDone && task.status === 'in_progress') {
+        await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+          method: 'PATCH',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'done', updated_at: new Date().toISOString() })
+        });
+        await logTaskHistory(taskId, 'in_progress', 'done', 'All members completed their parts');
+
+        // Notify admin
+        const admins = await sbGet(`crm_users?role=eq.admin&select=id`);
+        for (const admin of (admins || [])) {
+          await fetch(`${SB_URL}/rest/v1/task_notifications`, {
+            method: 'POST',
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              user_id: admin.id,
+              task_id: taskId,
+              type: 'completed',
+              message: `"${task.title}" — all members are done! Ready for your verification. ✅`
+            })
+          });
+        }
+        toast('✓ All members done! Admin notified to verify.');
+      } else {
+        toast('✓ Your part marked as complete!');
+      }
+    }
+
     await loadTasks();
-    toast('✓ Marked as complete!');
   } catch(e) { toast('Failed to update'); }
 }
 
@@ -2007,6 +2085,219 @@ async function loadFilesForTask(taskId, container) {
         </div>
       </div>`;
   } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════════════════
+// VERIFY, CANCEL & HISTORY
+// ══════════════════════════════════════════════════════════════
+
+// ── Verify task (admin only) ───────────────────────────────────
+async function verifyTask(taskId) {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  if (!confirm('Mark this task as Verified Complete? It will move to History.')) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'verified', updated_at: new Date().toISOString() })
+    });
+
+    // Log to history
+    await logTaskHistory(taskId, 'done', 'verified', 'Admin verified task as complete');
+
+    // Notify all assigned members
+    const task = allTasks.find(t => t.id === taskId);
+    if (task?.task_assignments) {
+      for (const a of task.task_assignments) {
+        if (a.user_id === currentUser.id) continue;
+        await fetch(`${SB_URL}/rest/v1/task_notifications`, {
+          method: 'POST',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: a.user_id,
+            task_id: taskId,
+            type: 'completed',
+            message: `"${task.title}" has been verified as complete by the admin! 🎉`
+          })
+        });
+      }
+    }
+
+    await loadTasks();
+    toast('✅ Task verified and moved to History!');
+  } catch(e) { toast('Failed to verify: ' + e.message); }
+}
+
+// ── Cancel task (admin only) ───────────────────────────────────
+async function cancelTask(taskId) {
+  if (!confirm('Cancel this task?')) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'cancelled', updated_at: new Date().toISOString() })
+    });
+    await logTaskHistory(taskId, null, 'cancelled', 'Task cancelled by admin');
+    await loadTasks();
+    toast('Task cancelled');
+  } catch(e) { toast('Failed to cancel: ' + e.message); }
+}
+
+// ── Log task history ───────────────────────────────────────────
+async function logTaskHistory(taskId, fromStatus, toStatus, note) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/task_history`, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        task_id: taskId,
+        changed_by: currentUser?.id,
+        from_status: fromStatus,
+        to_status: toStatus,
+        note,
+        changed_at: new Date().toISOString()
+      })
+    });
+  } catch(e) { console.error('History log error:', e); }
+}
+
+// ── Load history page ──────────────────────────────────────────
+let allHistory = [];
+let currentHistoryFilter = 'all';
+
+async function loadHistory() {
+  const container = document.getElementById('history-list');
+  container.innerHTML = '<div class="empty"><div class="empty-icon" style="font-size:24px">⏳</div>Loading...</div>';
+
+  try {
+    const isAdmin = currentUser?.role === 'admin';
+    let query = 'tasks?select=*,task_assignments(user_id,responsibility,completed,crm_users(id,name,avatar_url)),crm_users!tasks_created_by_fkey(name)&status=in.(verified,done,cancelled)&order=updated_at.desc';
+
+    const tasks = await sbGet(query);
+
+    // Members only see tasks they were assigned to
+    allHistory = isAdmin
+      ? (tasks || [])
+      : (tasks || []).filter(t => t.task_assignments?.some(a => a.user_id === currentUser?.id));
+
+    updateHistoryStats();
+    renderHistory();
+  } catch(e) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🗂️</div>No history yet.</div>';
+    console.error('History load error:', e);
+  }
+}
+
+function updateHistoryStats() {
+  const verified = allHistory.filter(t => t.status === 'verified').length;
+  const done = allHistory.filter(t => t.status === 'done').length;
+  const cancelled = allHistory.filter(t => t.status === 'cancelled').length;
+  const total = allHistory.length;
+
+  const s = id => document.getElementById(id);
+  if(s('hist-stat-verified')) s('hist-stat-verified').textContent = verified;
+  if(s('hist-stat-done')) s('hist-stat-done').textContent = done;
+  if(s('hist-stat-cancelled')) s('hist-stat-cancelled').textContent = cancelled;
+  if(s('hist-stat-total')) s('hist-stat-total').textContent = total;
+}
+
+function setHistoryFilter(filter, btn) {
+  currentHistoryFilter = filter;
+  document.querySelectorAll('[id^="hist-tab-"]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory();
+}
+
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  const isAdmin = currentUser?.role === 'admin';
+
+  let filtered = allHistory;
+  if (currentHistoryFilter !== 'all') {
+    filtered = allHistory.filter(t => t.status === currentHistoryFilter);
+  }
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty"><div class="empty-icon">🗂️</div>No tasks in this category.</div>';
+    return;
+  }
+
+  const STATUS_STYLE = {
+    verified: { bg:'rgba(52,211,153,.1)', border:'rgba(52,211,153,.3)', color:'var(--ok)', label:'✅ Verified Complete' },
+    done:     { bg:'rgba(251,191,36,.08)', border:'rgba(251,191,36,.3)', color:'var(--warn)', label:'⏳ Awaiting Verification' },
+    cancelled:{ bg:'rgba(239,68,68,.08)', border:'rgba(239,68,68,.3)', color:'#f87171', label:'❌ Cancelled' }
+  };
+
+  container.innerHTML = filtered.map(task => {
+    const style = STATUS_STYLE[task.status] || STATUS_STYLE.done;
+    const catIcon = CATEGORY_ICONS[task.category] || '📌';
+    const assignments = task.task_assignments || [];
+    const completedCount = assignments.filter(a => a.completed).length;
+    const creatorName = task.crm_users?.name || 'Unknown';
+
+    const assigneesHtml = assignments.map(a => {
+      const u = a.crm_users;
+      if (!u) return '';
+      const initials = (u.name||'U').split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+      const avatarHtml = u.avatar_url ? `<img src="${u.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">` : initials;
+      return `<div class="assignee-chip" title="${esc(u.name)}${a.responsibility?' — '+a.responsibility:''}">
+        <div class="assignee-avatar" style="${a.completed?'background:var(--ok)':''}">${avatarHtml}</div>
+        <span style="color:${a.completed?'var(--ok)':'var(--mt)'}">${a.completed?'✓ ':''} ${esc(u.name)}</span>
+      </div>`;
+    }).join('');
+
+    const dueDateStr = task.due_date ? formatDueDate(task.due_date, task.due_time) : '';
+
+    return `
+    <div class="task-card" style="border-color:${style.border};background:${style.bg}">
+      <div class="task-header">
+        <div class="priority-dot ${PRIORITY_COLORS[task.priority]||'p-medium'}"></div>
+        <div class="task-title" style="text-decoration:${task.status==='cancelled'?'line-through':''}">${esc(task.title)}</div>
+        <span class="cat-badge">${catIcon} ${task.category.replace('_',' ')}</span>
+        <span style="font-size:12px;font-weight:600;color:${style.color};white-space:nowrap">${style.label}</span>
+      </div>
+      ${task.description ? `<div class="task-desc">${esc(task.description)}</div>` : ''}
+      <div class="task-meta">
+        ${dueDateStr ? `<span class="task-due">📅 ${dueDateStr}</span>` : ''}
+        <span style="font-size:12px;color:var(--mt)">Created by ${esc(creatorName)}</span>
+        ${assignments.length ? `<span style="font-size:12px;color:var(--mt)">👥 ${completedCount}/${assignments.length} completed</span>` : ''}
+        <span style="font-size:12px;color:var(--mt)">Updated ${formatDate(task.updated_at)}</span>
+      </div>
+      ${assignments.length ? `<div class="task-assignees">${assigneesHtml}</div>` : ''}
+      <div id="hist-files-${task.id}"></div>
+      ${isAdmin && task.status === 'done' ? `
+        <div class="task-actions" style="margin-top:10px">
+          <button class="btn bp bs" style="background:var(--ok);border-color:var(--ok)" onclick="verifyTask('${task.id}');loadHistory()">✅ Verify Complete</button>
+          <span style="font-size:12px;color:var(--mt)">All members have marked their parts done</span>
+        </div>` : ''}
+      ${isAdmin && task.status === 'cancelled' ? `
+        <div class="task-actions" style="margin-top:10px">
+          <button class="btn bg bs" onclick="reopenTask('${task.id}')">↺ Reopen Task</button>
+        </div>` : ''}
+    </div>`;
+  }).join('');
+
+  // Load file attachments for history cards
+  for (const task of filtered) {
+    const fc = document.getElementById(`hist-files-${task.id}`);
+    if (fc) loadFilesForTask(task.id, fc);
+  }
+}
+
+// ── Reopen a cancelled task ────────────────────────────────────
+async function reopenTask(taskId) {
+  if (!confirm('Reopen this task?')) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${taskId}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'todo', updated_at: new Date().toISOString() })
+    });
+    await logTaskHistory(taskId, 'cancelled', 'todo', 'Task reopened by admin');
+    await loadHistory();
+    await loadTasks();
+    toast('Task reopened and moved back to Tasks');
+  } catch(e) { toast('Failed to reopen: ' + e.message); }
 }
 </script>
 </body>

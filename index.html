@@ -115,7 +115,10 @@
 <body>
 <div class="app">
   <aside class="sidebar">
-    <div class="logo">Synched Studios <small>Content CRM</small></div>
+    <div class="logo">
+      <img src="./SynchedStudios.png" alt="Synched Studios" style="width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 10px auto;" onerror="this.style.display='none'" />
+      Synched Studios <small>Content CRM</small>
+    </div>
     <button class="nav active" onclick="showPage('inbox',this)">📥 Inbox <span class="badge" id="inbox-badge"></span></button>
     <button class="nav" onclick="showPage('analyze',this)">🔍 Analyze a Link</button>
     <button class="nav" onclick="showPage('watchlist',this)">👁️ Watch List</button>
@@ -451,7 +454,7 @@ async function loadFromSupabase(){
   }
 }
 
-
+function showPage(name,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');

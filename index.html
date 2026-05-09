@@ -2293,25 +2293,31 @@ function renderHistory() {
 // ── Clear history ──────────────────────────────────────────────
 async function clearHistory() {
   const isAdmin = currentUser?.role === 'admin';
-
-  // What to clear depends on role
   const clearWhat = isAdmin
-    ? 'ALL history (verified, cancelled tasks) for everyone'
+    ? 'ALL history (verified and cancelled tasks) for everyone'
     : 'your personal history entries';
 
   if (!confirm(`Clear ${clearWhat}? This cannot be undone.`)) return;
 
   try {
     if (isAdmin) {
-      // Admin clears all verified and cancelled tasks
-      await fetch(`${SB_URL}/rest/v1/tasks?status=in.(verified,cancelled)`, {
-        method: 'DELETE',
-        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
-      });
-      toast('✓ History cleared');
+      // Delete verified tasks one by one to avoid query syntax issues
+      const toDelete = allHistory.filter(t => t.status === 'verified' || t.status === 'cancelled');
+      if (!toDelete.length) { toast('No history to clear'); return; }
+
+      let deleted = 0;
+      for (const task of toDelete) {
+        try {
+          await fetch(`${SB_URL}/rest/v1/tasks?id=eq.${task.id}`, {
+            method: 'DELETE',
+            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+          });
+          deleted++;
+        } catch(e) { console.error('Failed to delete task', task.id, e); }
+      }
+      toast(`✓ History cleared — ${deleted} task${deleted !== 1 ? 's' : ''} removed`);
     } else {
-      // Member only removes themselves from assignments in completed tasks
-      // so they don't see those tasks in their history anymore
+      // Member removes their own assignments from completed tasks
       const myHistoryIds = allHistory.map(t => t.id);
       for (const taskId of myHistoryIds) {
         await fetch(`${SB_URL}/rest/v1/task_assignments?task_id=eq.${taskId}&user_id=eq.${currentUser.id}`, {
@@ -2321,9 +2327,11 @@ async function clearHistory() {
       }
       toast('✓ Your history cleared');
     }
+    allHistory = [];
     await loadHistory();
   } catch(e) {
     toast('Failed to clear history: ' + e.message);
+    console.error(e);
   }
 }
 

@@ -251,23 +251,35 @@
         <div class="card">
           <div class="card-title">API Keys — saved in your browser only</div>
           <p style="font-size:12px;color:var(--warn);line-height:1.7;margin-bottom:14px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);padding:10px 14px;border-radius:var(--rs)">
-            ⚠️ <strong style="color:var(--tx)">API keys are saved per browser/device</strong> — you'll need to re-enter them if you switch browsers. This is for security. Your brand name and description sync automatically via Supabase.
+            ⚠️ <strong style="color:var(--tx)">API keys save per browser/device</strong> for security. Once saved they persist until you clear them. Your brand name syncs via Supabase across all browsers.
           </p>
           <div class="setting-row">
-            <div class="setting-label"><strong>Claude API Key</strong><span>From console.anthropic.com → API Keys</span></div>
-            <div class="setting-input"><input type="password" id="cfg-gemini" placeholder="sk-ant-..." /></div>
+            <div class="setting-label"><strong>Claude API Key</strong><span>console.anthropic.com → API Keys</span></div>
+            <div class="setting-input">
+              <input type="password" id="cfg-gemini" placeholder="sk-ant-..." />
+              <div id="ind-cfg-gemini" style="font-size:11px;margin-top:5px;display:flex;align-items:center;gap:8px"></div>
+            </div>
           </div>
           <div class="setting-row">
-            <div class="setting-label"><strong>YouTube API Key</strong><span>From console.cloud.google.com → YouTube Data API v3</span></div>
-            <div class="setting-input"><input type="password" id="cfg-yt" placeholder="AIza..." /></div>
+            <div class="setting-label"><strong>YouTube API Key</strong><span>console.cloud.google.com → YouTube Data API v3</span></div>
+            <div class="setting-input">
+              <input type="password" id="cfg-yt" placeholder="AIza..." />
+              <div id="ind-cfg-yt" style="font-size:11px;margin-top:5px;display:flex;align-items:center;gap:8px"></div>
+            </div>
           </div>
           <div class="setting-row">
             <div class="setting-label"><strong>Supabase URL</strong><span>Supabase → Settings → API → Project URL</span></div>
-            <div class="setting-input"><input type="text" id="cfg-sb-url" placeholder="https://xxxx.supabase.co" /></div>
+            <div class="setting-input">
+              <input type="text" id="cfg-sb-url" placeholder="https://xxxx.supabase.co" />
+              <div id="ind-cfg-sb-url" style="font-size:11px;margin-top:5px;display:flex;align-items:center;gap:8px"></div>
+            </div>
           </div>
           <div class="setting-row">
             <div class="setting-label"><strong>Supabase Anon Key</strong><span>Supabase → Settings → API → anon public</span></div>
-            <div class="setting-input"><input type="password" id="cfg-sb-key" placeholder="eyJ..." /></div>
+            <div class="setting-input">
+              <input type="password" id="cfg-sb-key" placeholder="eyJ..." />
+              <div id="ind-cfg-sb-key" style="font-size:11px;margin-top:5px;display:flex;align-items:center;gap:8px"></div>
+            </div>
           </div>
         </div>
         <div class="card">
@@ -306,11 +318,19 @@ const ss=(k,v)=>{if(v)localStorage.setItem(k,v);};
 const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v)e.value=v;};
 const gv=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
 
+function clearKey(id){
+  localStorage.removeItem(id);
+  const el=document.getElementById(id);
+  if(el)el.value='';
+  updateKeyIndicators();
+  toast('Key cleared');
+}
+
 window.onload=async()=>{
   loadSettings();
-  // Load brand settings from Supabase (persists across browsers)
   await loadSettingsFromSupabase();
   loadInbox();
+  updateKeyIndicators();
   const b=ls('cfg-brand');
   if(b)sv('analyze-brand',b);
 };
@@ -324,8 +344,7 @@ async function saveSettings(){
   keys.forEach(k=>ss('cfg-'+k,gv('cfg-'+k)));
   sv('analyze-brand',ls('cfg-brand'));
 
-  // Also save non-sensitive settings to Supabase so they persist across browsers
-  // Note: API keys stay in localStorage only for security
+  // Save brand settings to Supabase (upsert so it works every time)
   try{
     const configs=[
       {key:'brand',value:gv('cfg-brand')},
@@ -333,10 +352,31 @@ async function saveSettings(){
     ];
     for(const c of configs){
       if(!c.value)continue;
-      await sbFetch('POST','app_config',{key:c.key,value:c.value,updated_at:new Date().toISOString()});
+      await sbFetch('POST','app_config?on_conflict=key',{key:c.key,value:c.value,updated_at:new Date().toISOString()});
     }
-  }catch(e){console.log('Supabase config save skipped');}
+  }catch(e){console.log('Supabase config save:',e.message);}
+
+  updateKeyIndicators();
   toast('✓ Settings saved!');
+}
+
+function updateKeyIndicators(){
+  const fields=[
+    {id:'cfg-gemini', label:'Claude API Key'},
+    {id:'cfg-yt', label:'YouTube API Key'},
+    {id:'cfg-sb-url', label:'Supabase URL'},
+    {id:'cfg-sb-key', label:'Supabase Anon Key'},
+  ];
+  fields.forEach(f=>{
+    const val=ls(f.id);
+    const indicator=document.getElementById('ind-'+f.id);
+    if(!indicator)return;
+    if(val){
+      indicator.innerHTML=`<span style="color:var(--ok)">✓ Saved</span> <button class="btn bg bs" onclick="clearKey('${f.id}')" style="padding:2px 8px;font-size:10px">Clear</button>`;
+    } else {
+      indicator.innerHTML=`<span style="color:var(--mt)">Not set</span>`;
+    }
+  });
 }
 
 async function loadSettingsFromSupabase(){
@@ -357,15 +397,21 @@ function showPage(name,btn){
   btn.classList.add('active');
   if(name==='inbox')loadInbox();
   if(name==='watchlist')loadSources();
-  if(name==='settings')loadSettings();
+  if(name==='settings'){loadSettings();updateKeyIndicators();}
 }
 
 async function sbFetch(method,path,body){
   const url=ls('cfg-sb-url'),key=ls('cfg-sb-key');
   if(!url||!key)return null;
+  const isUpsert=path.includes('on_conflict');
   const res=await fetch(`${url}/rest/v1/${path}`,{
     method,
-    headers:{'apikey':key,'Authorization':`Bearer ${key}`,'Content-Type':'application/json','Prefer':method==='POST'?'return=representation':'return=minimal'},
+    headers:{
+      'apikey':key,
+      'Authorization':`Bearer ${key}`,
+      'Content-Type':'application/json',
+      'Prefer': isUpsert ? 'resolution=merge-duplicates' : (method==='POST'?'return=representation':'return=minimal')
+    },
     body:body?JSON.stringify(body):undefined
   });
   if(!res.ok)throw new Error(await res.text());

@@ -111,6 +111,42 @@
     .stat-num { font-size: 24px; font-weight: 600; }
     .stat-label { font-size: 11px; color: var(--mt); margin-top: 3px; }
 
+    /* ── Auth screens ── */
+    .auth-screen { display:none; position:fixed; inset:0; background:var(--bg); z-index:200; overflow-y:auto; align-items:center; justify-content:center; }
+    .auth-screen.active { display:flex; }
+    .auth-box { background:var(--sur); border:1px solid var(--bdr); border-radius:var(--r); padding:36px 32px; width:100%; max-width:420px; margin:20px; }
+    .auth-logo { text-align:center; margin-bottom:28px; }
+    .auth-logo img { width:64px; height:64px; object-fit:contain; margin-bottom:10px; display:block; margin-left:auto; margin-right:auto; }
+    .auth-logo h1 { font-size:20px; font-weight:700; color:var(--ac2); }
+    .auth-logo p { font-size:13px; color:var(--mt); margin-top:4px; }
+    .auth-tabs { display:flex; background:var(--sur2); border-radius:var(--rs); padding:4px; margin-bottom:24px; gap:4px; }
+    .auth-tab { flex:1; padding:8px; border:none; background:none; color:var(--mt); font-size:13px; font-weight:500; border-radius:6px; cursor:pointer; transition:all .15s; font-family:inherit; }
+    .auth-tab.active { background:var(--ac); color:#fff; }
+    .auth-form { display:none; }
+    .auth-form.active { display:block; }
+    .auth-avatar-upload { display:flex; flex-direction:column; align-items:center; margin-bottom:18px; }
+    .auth-avatar-preview { width:80px; height:80px; border-radius:50%; background:var(--sur2); border:2px dashed var(--bdr2); display:flex; align-items:center; justify-content:center; font-size:28px; cursor:pointer; overflow:hidden; margin-bottom:8px; transition:border .15s; }
+    .auth-avatar-preview:hover { border-color:var(--ac); }
+    .auth-avatar-preview img { width:100%; height:100%; object-fit:cover; }
+    .auth-avatar-label { font-size:12px; color:var(--mt); cursor:pointer; }
+    .auth-divider { text-align:center; font-size:12px; color:var(--mt); margin:16px 0; }
+    .auth-error { background:rgba(239,68,68,.1); border:1px solid rgba(239,68,68,.3); color:#f87171; font-size:12px; padding:10px 14px; border-radius:var(--rs); margin-bottom:14px; display:none; }
+
+    /* ── Profile in sidebar ── */
+    .profile-section { margin-top:auto; padding-top:16px; border-top:1px solid var(--bdr); }
+    .profile-btn { display:flex; align-items:center; gap:10px; padding:8px; border-radius:var(--rs); cursor:pointer; border:none; background:none; width:100%; text-align:left; transition:all .15s; }
+    .profile-btn:hover { background:var(--sur2); }
+    .profile-avatar { width:34px; height:34px; border-radius:50%; background:var(--ac); display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; color:#fff; flex-shrink:0; overflow:hidden; }
+    .profile-avatar img { width:100%; height:100%; object-fit:cover; }
+    .profile-name { font-size:13px; font-weight:500; color:var(--tx); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .profile-role { font-size:11px; color:var(--mt); }
+    .logout-btn { display:flex; align-items:center; gap:8px; padding:8px 11px; border-radius:var(--rs); border:none; background:none; color:#f87171; font-size:13px; cursor:pointer; width:100%; text-align:left; margin-top:4px; transition:all .15s; font-family:inherit; }
+    .logout-btn:hover { background:rgba(239,68,68,.08); }
+
+    /* ── Mobile avatar in bottom area ── */
+    .mobile-profile { display:none; }
+    @media (max-width:640px) { .mobile-profile { display:flex; align-items:center; gap:8px; padding:12px 16px; border-bottom:1px solid var(--bdr); } }
+
     /* ── Bottom nav (mobile only) ── */
     .bottom-nav { display: none; position: fixed; bottom: 0; left: 0; right: 0; background: var(--sur); border-top: 1px solid var(--bdr); z-index: 100; }
     .bottom-nav-inner { display: flex; }
@@ -159,6 +195,55 @@
   </style>
 </head>
 <body>
+<!-- AUTH SCREEN -->
+<div class="auth-screen active" id="auth-screen">
+  <div class="auth-box">
+    <div class="auth-logo">
+      <img src="./SynchedStudios.png" style="width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 12px auto;" onerror="this.style.display='none'" />
+      <h1>Synched Studios</h1>
+      <p>Content CRM — Sign in to continue</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login',this)">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('register',this)">Create Account</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="auth-form active" id="auth-login">
+      <div class="auth-error" id="login-error"></div>
+      <div class="fr"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" /></div>
+      <div class="fr"><label>Password</label><input type="password" id="login-password" placeholder="Your password" /></div>
+      <button class="btn bp" style="width:100%;justify-content:center;margin-top:4px" id="login-btn" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="auth-form" id="auth-register">
+      <div class="auth-error" id="register-error"></div>
+      <div class="auth-avatar-upload">
+        <div class="auth-avatar-preview" id="reg-avatar-preview" onclick="document.getElementById('reg-avatar-input').click()">📷</div>
+        <label class="auth-avatar-label" for="reg-avatar-input">Upload profile photo (optional)</label>
+        <input type="file" id="reg-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)" />
+      </div>
+      <div class="fg">
+        <div class="fr"><label>Full name</label><input type="text" id="reg-name" placeholder="Your name" /></div>
+        <div class="fr"><label>Role</label>
+          <select id="reg-role">
+            <option value="admin">Admin</option>
+            <option value="member">Member</option>
+          </select>
+        </div>
+      </div>
+      <div class="fr"><label>Email</label><input type="email" id="reg-email" placeholder="you@email.com" /></div>
+      <div class="fg">
+        <div class="fr"><label>Password</label><input type="password" id="reg-password" placeholder="Create password" /></div>
+        <div class="fr"><label>Confirm password</label><input type="password" id="reg-confirm" placeholder="Repeat password" /></div>
+      </div>
+      <div class="fr"><label>Bio (optional)</label><textarea id="reg-bio" placeholder="Tell us about yourself..." style="min-height:60px"></textarea></div>
+      <button class="btn bp" style="width:100%;justify-content:center;margin-top:4px" id="register-btn" onclick="doRegister()">Create Account</button>
+    </div>
+  </div>
+</div>
+
 <div class="app">
   <aside class="sidebar">
     <div class="logo">
@@ -169,9 +254,26 @@
     <button class="nav" onclick="showPage('analyze',this)">🔍 Analyze a Link</button>
     <button class="nav" onclick="showPage('watchlist',this)">👁️ Watch List</button>
     <button class="nav" onclick="showPage('settings',this)">⚙️ Settings</button>
+    <div class="profile-section">
+      <button class="profile-btn" onclick="showPage('profile',this)">
+        <div class="profile-avatar" id="sidebar-avatar">?</div>
+        <div>
+          <div class="profile-name" id="sidebar-name">Loading...</div>
+          <div class="profile-role" id="sidebar-role"></div>
+        </div>
+      </button>
+      <button class="logout-btn" onclick="doLogout()">🚪 Sign out</button>
+    </div>
   </aside>
 
   <main class="main">
+
+    <!-- Mobile profile header -->
+    <div class="mobile-profile" id="mobile-profile-bar">
+      <div class="profile-avatar" id="mobile-avatar" style="width:32px;height:32px;font-size:12px">?</div>
+      <div style="flex:1"><div style="font-size:13px;font-weight:500" id="mobile-name">Loading...</div></div>
+      <button class="btn br bs" onclick="doLogout()">Sign out</button>
+    </div>
 
     <!-- INBOX -->
     <div id="page-inbox" class="page active">
@@ -348,6 +450,47 @@
       </div>
     </div>
 
+    <!-- PROFILE -->
+    <div id="page-profile" class="page">
+      <div class="topbar">
+        <div><h1>Profile Settings</h1><p>Update your account information</p></div>
+      </div>
+      <div class="content">
+        <div class="card" style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+          <div style="position:relative">
+            <div class="profile-avatar" id="profile-avatar-big" style="width:80px;height:80px;font-size:28px;cursor:pointer" onclick="document.getElementById('profile-avatar-input').click()">?</div>
+            <div style="position:absolute;bottom:0;right:0;background:var(--ac);border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;cursor:pointer" onclick="document.getElementById('profile-avatar-input').click()">✏️</div>
+            <input type="file" id="profile-avatar-input" accept="image/*" style="display:none" onchange="updateAvatarPreview(this)" />
+          </div>
+          <div>
+            <div style="font-size:18px;font-weight:600" id="profile-display-name">—</div>
+            <div style="font-size:13px;color:var(--mt)" id="profile-display-email">—</div>
+            <div style="font-size:12px;color:var(--ac2);margin-top:4px" id="profile-display-role">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Edit Profile</div>
+          <div class="fg">
+            <div class="fr"><label>Full name</label><input type="text" id="prof-name" placeholder="Your name" /></div>
+            <div class="fr"><label>Role</label>
+              <select id="prof-role">
+                <option value="admin">Admin</option>
+                <option value="member">Member</option>
+              </select>
+            </div>
+          </div>
+          <div class="fr"><label>Email</label><input type="email" id="prof-email" placeholder="you@email.com" /></div>
+          <div class="fr"><label>Bio</label><textarea id="prof-bio" placeholder="Tell us about yourself..."></textarea></div>
+          <div class="fr"><label>New password (leave blank to keep current)</label><input type="password" id="prof-password" placeholder="New password" /></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button class="btn bp" onclick="saveProfile()">💾 Save Changes</button>
+            <button class="btn br bs" onclick="doLogout()">🚪 Sign out</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -371,6 +514,10 @@
       <span class="bicon">⚙️</span>
       Settings
     </button>
+    <button class="bnav" id="bnav-profile" onclick="showPageMobile('profile', this)">
+      <span class="bicon" id="bnav-profile-icon">👤</span>
+      Profile
+    </button>
   </div>
 </nav>
 
@@ -378,6 +525,7 @@
 
 <script>
 let currentFilter='all', analyzedResults={}, allPosts=[];
+let currentUser = null; // logged in user object
 
 // In-memory config — loaded from Supabase on startup
 const cfg = { gemini:'', yt:'', brand:'', desc:'' };
@@ -386,17 +534,287 @@ const cfg = { gemini:'', yt:'', brand:'', desc:'' };
 const SB_URL = 'https://jujxinhagppfuvxkbrkv.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp1anhpbmhhZ3BwZnV2eGticmt2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgyNTQxMDEsImV4cCI6MjA5MzgzMDEwMX0.rXxgy3kz_m0SNnldfW6FEWnHpEPML0gR8XFwJFCW5pQ';
 
-const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v!==undefined)e.value=v;};
+const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v!==undefined)e.value=v||'';};
 const gv=id=>{const e=document.getElementById(id);return e?e.value.trim():'';};
 
-// ── Startup ────────────────────────────────────────────────────
-window.onload=async()=>{
-  // Auto-load all settings from Supabase on every page load
+// ── Simple hash (not cryptographic but fine for this use case) ──
+async function hashPassword(password) {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password + 'synched_salt_2026');
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// ── Auth tab switch ────────────────────────────────────────────
+function switchAuthTab(tab, btn) {
+  document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('auth-'+tab).classList.add('active');
+}
+
+// ── Avatar preview on register ────────────────────────────────
+function previewAvatar(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const preview = document.getElementById('reg-avatar-preview');
+    preview.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function updateAvatarPreview(input) {
+  if (!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const big = document.getElementById('profile-avatar-big');
+    big.innerHTML = `<img src="${e.target.result}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// ── Upload avatar to Supabase Storage ─────────────────────────
+async function uploadAvatar(file, userId) {
+  if (!file) return null;
+  const ext = file.name.split('.').pop();
+  const path = `${userId}.${ext}`;
+  const res = await fetch(`${SB_URL}/storage/v1/object/avatars/${path}`, {
+    method: 'POST',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': file.type,
+      'x-upsert': 'true'
+    },
+    body: file
+  });
+  if (!res.ok) return null;
+  return `${SB_URL}/storage/v1/object/public/avatars/${path}`;
+}
+
+// ── Register ───────────────────────────────────────────────────
+async function doRegister() {
+  const name = gv('reg-name');
+  const email = gv('reg-email');
+  const password = gv('reg-password');
+  const confirm = gv('reg-confirm');
+  const role = gv('reg-role');
+  const bio = gv('reg-bio');
+  const errEl = document.getElementById('register-error');
+  const btn = document.getElementById('register-btn');
+
+  errEl.style.display = 'none';
+
+  if (!name || !email || !password) { showAuthError('register', 'Name, email and password are required'); return; }
+  if (password !== confirm) { showAuthError('register', 'Passwords do not match'); return; }
+  if (password.length < 6) { showAuthError('register', 'Password must be at least 6 characters'); return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Creating account...';
+
+  try {
+    // Check if email already exists
+    const existing = await sbGet(`crm_users?email=eq.${encodeURIComponent(email)}&select=id`);
+    if (existing && existing.length > 0) { showAuthError('register', 'An account with this email already exists'); return; }
+
+    const passwordHash = await hashPassword(password);
+    const userId = crypto.randomUUID();
+
+    // Upload avatar if provided
+    const avatarFile = document.getElementById('reg-avatar-input').files[0];
+    const avatarUrl = avatarFile ? await uploadAvatar(avatarFile, userId) : null;
+
+    // Save user
+    const res = await fetch(`${SB_URL}/rest/v1/crm_users`, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+      body: JSON.stringify({ id: userId, name, email, password_hash: passwordHash, role, bio, avatar_url: avatarUrl })
+    });
+
+    if (!res.ok) throw new Error(await res.text());
+    const users = await res.json();
+    currentUser = users[0];
+    localStorage.setItem('crm_user_id', currentUser.id);
+    enterApp();
+  } catch(e) {
+    showAuthError('register', 'Registration failed: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.innerHTML = 'Create Account';
+  }
+}
+
+// ── Login ──────────────────────────────────────────────────────
+async function doLogin() {
+  const email = gv('login-email');
+  const password = gv('login-password');
+  const btn = document.getElementById('login-btn');
+
+  if (!email || !password) { showAuthError('login', 'Email and password are required'); return; }
+
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Signing in...';
+
+  try {
+    const passwordHash = await hashPassword(password);
+    const users = await sbGet(`crm_users?email=eq.${encodeURIComponent(email)}&password_hash=eq.${passwordHash}&select=*`);
+
+    if (!users || users.length === 0) { showAuthError('login', 'Invalid email or password'); return; }
+
+    currentUser = users[0];
+    localStorage.setItem('crm_user_id', currentUser.id);
+
+    // Update last login
+    await fetch(`${SB_URL}/rest/v1/crm_users?id=eq.${currentUser.id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ last_login: new Date().toISOString() })
+    });
+
+    enterApp();
+  } catch(e) {
+    showAuthError('login', 'Login failed: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.innerHTML = 'Sign In';
+  }
+}
+
+// ── Logout ─────────────────────────────────────────────────────
+function doLogout() {
+  currentUser = null;
+  localStorage.removeItem('crm_user_id');
+  document.getElementById('auth-screen').classList.add('active');
+  document.getElementById('app-screen') && document.getElementById('app-screen').classList.remove('active');
+  document.querySelector('.app').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
+  toast('Signed out');
+}
+
+// ── Enter app after auth ───────────────────────────────────────
+async function enterApp() {
+  document.getElementById('auth-screen').classList.remove('active');
+  document.querySelector('.app').style.display = 'flex';
+  document.querySelector('.bottom-nav').style.display = 'block';
+  updateProfileUI();
   await loadAllFromSupabase(SB_URL, SB_KEY);
   updateKeyIndicators();
   loadInbox();
-  if(cfg.brand) sv('analyze-brand', cfg.brand);
+  if (cfg.brand) sv('analyze-brand', cfg.brand);
+}
+
+// ── Update profile UI everywhere ──────────────────────────────
+function updateProfileUI() {
+  if (!currentUser) return;
+  const name = currentUser.name || 'User';
+  const role = currentUser.role || 'member';
+  const avatar = currentUser.avatar_url;
+  const initials = name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);
+
+  const avatarHtml = avatar
+    ? `<img src="${avatar}" style="width:100%;height:100%;object-fit:cover;border-radius:50%" />`
+    : initials;
+
+  // Sidebar
+  const sidebarAvatar = document.getElementById('sidebar-avatar');
+  if (sidebarAvatar) sidebarAvatar.innerHTML = avatarHtml;
+  const sidebarName = document.getElementById('sidebar-name');
+  if (sidebarName) sidebarName.textContent = name;
+  const sidebarRole = document.getElementById('sidebar-role');
+  if (sidebarRole) sidebarRole.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+
+  // Mobile header
+  const mobileAvatar = document.getElementById('mobile-avatar');
+  if (mobileAvatar) mobileAvatar.innerHTML = avatarHtml;
+  const mobileName = document.getElementById('mobile-name');
+  if (mobileName) mobileName.textContent = name;
+
+  // Profile page
+  sv('prof-name', name);
+  sv('prof-email', currentUser.email || '');
+  sv('prof-bio', currentUser.bio || '');
+  sv('prof-role', role);
+
+  const bigAvatar = document.getElementById('profile-avatar-big');
+  if (bigAvatar) bigAvatar.innerHTML = avatarHtml;
+  const dispName = document.getElementById('profile-display-name');
+  if (dispName) dispName.textContent = name;
+  const dispEmail = document.getElementById('profile-display-email');
+  if (dispEmail) dispEmail.textContent = currentUser.email || '';
+  const dispRole = document.getElementById('profile-display-role');
+  if (dispRole) dispRole.textContent = role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+// ── Save profile changes ───────────────────────────────────────
+async function saveProfile() {
+  if (!currentUser) return;
+  const name = gv('prof-name');
+  const email = gv('prof-email');
+  const bio = gv('prof-bio');
+  const role = gv('prof-role');
+  const newPassword = gv('prof-password');
+
+  const updates = { name, email, bio, role };
+  if (newPassword) {
+    if (newPassword.length < 6) { toast('Password must be at least 6 characters'); return; }
+    updates.password_hash = await hashPassword(newPassword);
+  }
+
+  // Upload new avatar if selected
+  const avatarFile = document.getElementById('profile-avatar-input').files[0];
+  if (avatarFile) {
+    const avatarUrl = await uploadAvatar(avatarFile, currentUser.id);
+    if (avatarUrl) updates.avatar_url = avatarUrl;
+  }
+
+  try {
+    await fetch(`${SB_URL}/rest/v1/crm_users?id=eq.${currentUser.id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    currentUser = { ...currentUser, ...updates };
+    updateProfileUI();
+    toast('✓ Profile updated!');
+  } catch(e) {
+    toast('Failed to save: ' + e.message);
+  }
+}
+
+function showAuthError(form, msg) {
+  const el = document.getElementById(form+'-error');
+  el.textContent = msg; el.style.display = 'block';
+}
+
+// ── Startup ────────────────────────────────────────────────────
+window.onload = async () => {
+  // Hide app initially
+  document.querySelector('.app').style.display = 'none';
+  document.querySelector('.bottom-nav').style.display = 'none';
+
+  // Check if user was previously logged in
+  const savedUserId = localStorage.getItem('crm_user_id');
+  if (savedUserId) {
+    try {
+      const users = await sbGet(`crm_users?id=eq.${savedUserId}&select=*`);
+      if (users && users.length > 0) {
+        currentUser = users[0];
+        enterApp();
+        return;
+      }
+    } catch(e) { console.log('Auto-login failed:', e); }
+  }
+
+  // Show auth screen
+  document.getElementById('auth-screen').classList.add('active');
 };
+
+// ── Supabase GET helper ────────────────────────────────────────
+async function sbGet(path) {
+  const res = await fetch(`${SB_URL}/rest/v1/${path}`, {
+    headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
 
 // ── Save ALL settings to Supabase ──────────────────────────────
 async function saveSettings(){

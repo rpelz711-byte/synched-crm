@@ -571,7 +571,10 @@
     <div id="page-history" class="page">
       <div class="topbar">
         <div><h1>Task History</h1><p>Completed and verified tasks</p></div>
-        <button class="btn bg bs" onclick="loadHistory()">↺ Refresh</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn bg bs" onclick="loadHistory()">↺ Refresh</button>
+          <button class="btn br bs" onclick="clearHistory()" id="clear-history-btn">🗑️ Clear History</button>
+        </div>
       </div>
       <div class="content">
 
@@ -1501,6 +1504,9 @@ function renderTasks() {
 
   let filtered = allTasks;
 
+  // Never show verified or cancelled tasks in the main task list — they belong in History
+  filtered = filtered.filter(t => t.status !== 'verified' && t.status !== 'cancelled');
+
   // Filter by category
   if (currentTaskFilter !== 'all') {
     filtered = filtered.filter(t => t.category === currentTaskFilter);
@@ -2124,7 +2130,7 @@ async function verifyTask(taskId) {
     }
 
     await loadTasks();
-    toast('✅ Task verified and moved to History!');
+    toast('✅ Task verified! Check History to review it.');
   } catch(e) { toast('Failed to verify: ' + e.message); }
 }
 
@@ -2284,7 +2290,43 @@ function renderHistory() {
   }
 }
 
-// ── Reopen a cancelled task ────────────────────────────────────
+// ── Clear history ──────────────────────────────────────────────
+async function clearHistory() {
+  const isAdmin = currentUser?.role === 'admin';
+
+  // What to clear depends on role
+  const clearWhat = isAdmin
+    ? 'ALL history (verified, cancelled tasks) for everyone'
+    : 'your personal history entries';
+
+  if (!confirm(`Clear ${clearWhat}? This cannot be undone.`)) return;
+
+  try {
+    if (isAdmin) {
+      // Admin clears all verified and cancelled tasks
+      await fetch(`${SB_URL}/rest/v1/tasks?status=in.(verified,cancelled)`, {
+        method: 'DELETE',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+      });
+      toast('✓ History cleared');
+    } else {
+      // Member only removes themselves from assignments in completed tasks
+      // so they don't see those tasks in their history anymore
+      const myHistoryIds = allHistory.map(t => t.id);
+      for (const taskId of myHistoryIds) {
+        await fetch(`${SB_URL}/rest/v1/task_assignments?task_id=eq.${taskId}&user_id=eq.${currentUser.id}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+      }
+      toast('✓ Your history cleared');
+    }
+    await loadHistory();
+  } catch(e) {
+    toast('Failed to clear history: ' + e.message);
+  }
+}
+
 async function reopenTask(taskId) {
   if (!confirm('Reopen this task?')) return;
   try {

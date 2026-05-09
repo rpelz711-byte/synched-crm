@@ -137,12 +137,13 @@
       .stat-num { font-size: 20px; }
       .setting-row { flex-direction: column; gap: 8px; }
       .setting-label { width: 100%; }
-      input, select, textarea { font-size: 16px; } /* prevents iOS zoom */
-      .btn { padding: 12px 16px; font-size: 14px; }
+      input, select, textarea { font-size: 16px; }
       .toast { bottom: 80px; left: 12px; right: 12px; text-align: center; }
       .filter-row { flex-wrap: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
       .filter-btn { flex-shrink: 0; }
       .post-actions { gap: 6px; }
+      .bottom-nav { pointer-events: auto; }
+      .main { position: relative; z-index: 1; }
     }
 
     /* ── TABLET ── */
@@ -169,29 +170,6 @@
     <button class="nav" onclick="showPage('watchlist',this)">👁️ Watch List</button>
     <button class="nav" onclick="showPage('settings',this)">⚙️ Settings</button>
   </aside>
-
-  <!-- Bottom nav for mobile -->
-  <nav class="bottom-nav">
-    <div class="bottom-nav-inner">
-      <button class="bnav active" id="bnav-inbox" onclick="showPageMobile('inbox', this)">
-        <span class="bicon">📥</span>
-        <span class="bbadge" id="inbox-badge-mobile"></span>
-        Inbox
-      </button>
-      <button class="bnav" id="bnav-analyze" onclick="showPageMobile('analyze', this)">
-        <span class="bicon">🔍</span>
-        Analyze
-      </button>
-      <button class="bnav" id="bnav-watchlist" onclick="showPageMobile('watchlist', this)">
-        <span class="bicon">👁️</span>
-        Watch List
-      </button>
-      <button class="bnav" id="bnav-settings" onclick="showPageMobile('settings', this)">
-        <span class="bicon">⚙️</span>
-        Settings
-      </button>
-    </div>
-  </nav>
 
   <main class="main">
 
@@ -372,6 +350,30 @@
 
   </main>
 </div>
+
+<!-- Bottom nav for mobile — outside app div so it doesn't interfere -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="bnav active" id="bnav-inbox" onclick="showPageMobile('inbox', this)">
+      <span class="bicon">📥</span>
+      <span class="bbadge" id="inbox-badge-mobile"></span>
+      Inbox
+    </button>
+    <button class="bnav" id="bnav-analyze" onclick="showPageMobile('analyze', this)">
+      <span class="bicon">🔍</span>
+      Analyze
+    </button>
+    <button class="bnav" id="bnav-watchlist" onclick="showPageMobile('watchlist', this)">
+      <span class="bicon">👁️</span>
+      Watch
+    </button>
+    <button class="bnav" id="bnav-settings" onclick="showPageMobile('settings', this)">
+      <span class="bicon">⚙️</span>
+      Settings
+    </button>
+  </div>
+</nav>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -498,11 +500,31 @@ function updateKeyIndicators(){
 function showPage(name,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.bnav').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
+  // Sync mobile bottom nav
+  const mobileBtn=document.getElementById('bnav-'+name);
+  if(mobileBtn) mobileBtn.classList.add('active');
   if(name==='inbox') loadInbox();
   if(name==='watchlist') loadSources();
   if(name==='settings') updateKeyIndicators();
+}
+
+function showPageMobile(name, btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.bnav').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  btn.classList.add('active');
+  // Sync desktop sidebar
+  const desktopBtns=document.querySelectorAll('.nav');
+  desktopBtns.forEach(b=>{ if(b.textContent.toLowerCase().includes(name.substring(0,4))) b.classList.add('active'); });
+  if(name==='inbox') loadInbox();
+  if(name==='watchlist') loadSources();
+  if(name==='settings') updateKeyIndicators();
+  // Scroll to top
+  document.querySelector('.main').scrollTo(0,0);
 }
 
 
@@ -534,7 +556,9 @@ async function loadInbox(){
   renderPosts(allPosts);
   const n=allPosts.filter(p=>p.status==='new').length;
   const b=document.getElementById('inbox-badge');
-  b.textContent=n;b.style.display=n>0?'inline':'none';
+  b.textContent=n; b.style.display=n>0?'inline':'none';
+  const bm=document.getElementById('inbox-badge-mobile');
+  if(bm){bm.textContent=n; bm.style.display=n>0?'inline':'none';}
 }
 
 function updateStats(posts){

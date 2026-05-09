@@ -250,9 +250,11 @@
       <div class="content">
         <div class="card">
           <div class="card-title">API Keys — saved in your browser only</div>
-          <p style="font-size:12px;color:var(--warn);line-height:1.7;margin-bottom:14px;background:rgba(251,191,36,.06);border:1px solid rgba(251,191,36,.2);padding:10px 14px;border-radius:var(--rs)">
-            ⚠️ <strong style="color:var(--tx)">API keys save per browser/device</strong> for security. Once saved they persist until you clear them. Your brand name syncs via Supabase across all browsers.
-          </p>
+          <div style="font-size:12px;line-height:1.7;margin-bottom:14px;background:rgba(52,211,153,.06);border:1px solid rgba(52,211,153,.2);padding:12px 14px;border-radius:var(--rs);color:#6ee7b7">
+            <strong style="color:var(--tx)">💡 How to sync keys across browsers:</strong><br>
+            1. Enter all keys below and click <strong style="color:var(--tx)">Save Settings</strong> — saves to this browser AND Supabase<br>
+            2. On any new browser/device: enter only your <strong style="color:var(--tx)">Supabase URL + Anon Key</strong>, then click <strong style="color:var(--tx)">Load from Supabase</strong> to restore everything
+          </div>
           <div class="setting-row">
             <div class="setting-label"><strong>Claude API Key</strong><span>console.anthropic.com → API Keys</span></div>
             <div class="setting-input">
@@ -303,7 +305,10 @@
             <a href="https://www.bing.com/images/create" target="_blank" class="btn bg bs">🤖 Bing Image Creator</a>
           </div>
         </div>
-        <button class="btn bp" onclick="saveSettings()">Save Settings</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn bp" onclick="saveSettings()">💾 Save Settings</button>
+          <button class="btn bg" onclick="loadFromSupabase()">☁️ Load from Supabase</button>
+        </div>
       </div>
     </div>
 
@@ -328,7 +333,12 @@ function clearKey(id){
 
 window.onload=async()=>{
   loadSettings();
-  await loadSettingsFromSupabase();
+  // Try to load all settings from Supabase if we have credentials
+  const sbUrl=ls('cfg-sb-url'), sbKey=ls('cfg-sb-key');
+  if(sbUrl && sbKey){
+    const loaded=await loadAllSettingsFromSupabase(sbUrl, sbKey);
+    if(loaded)loadSettings(); // refresh form fields
+  }
   loadInbox();
   updateKeyIndicators();
   const b=ls('cfg-brand');
@@ -340,57 +350,108 @@ function loadSettings(){
 }
 
 async function saveSettings(){
+  // Always save ALL keys to localStorage first
   const keys=['gemini','yt','sb-url','sb-key','brand','desc'];
   keys.forEach(k=>ss('cfg-'+k,gv('cfg-'+k)));
   sv('analyze-brand',ls('cfg-brand'));
 
-  // Save brand settings to Supabase (upsert so it works every time)
-  try{
+  // Save ALL settings to Supabase (encrypted values — uses Supabase RLS as security layer)
+  // This way on any new browser, you only need to enter Supabase URL+key once
+  const sbUrl=gv('cfg-sb-url')||ls('cfg-sb-url');
+  const sbKey=gv('cfg-sb-key')||ls('cfg-sb-key');
+
+  if(sbUrl && sbKey){
     const configs=[
-      {key:'brand',value:gv('cfg-brand')},
-      {key:'brand_desc',value:gv('cfg-desc')}
+      {key:'claude_key', value:gv('cfg-gemini')||ls('cfg-gemini')},
+      {key:'yt_key', value:gv('cfg-yt')||ls('cfg-yt')},
+      {key:'brand', value:gv('cfg-brand')||ls('cfg-brand')},
+      {key:'brand_desc', value:gv('cfg-desc')||ls('cfg-desc')}
     ];
+    let saved=0;
     for(const c of configs){
       if(!c.value)continue;
-      await sbFetch('POST','app_config?on_conflict=key',{key:c.key,value:c.value,updated_at:new Date().toISOString()});
+      try{
+        await sbUpsert(sbUrl, sbKey, c.key, c.value);
+        saved++;
+      }catch(e){console.log('Failed to save',c.key,e.message);}
     }
-  }catch(e){console.log('Supabase config save:',e.message);}
-
+    if(saved>0){
+      toast(`✓ Settings saved! (${saved} keys synced to Supabase)`);
+    } else {
+      toast('✓ Settings saved locally!');
+    }
+  } else {
+    toast('✓ Settings saved locally! Add Supabase keys to sync across browsers.');
+  }
   updateKeyIndicators();
-  toast('✓ Settings saved!');
+}
+
+async function sbUpsert(sbUrl, sbKey, key, value){
+  const res=await fetch(`${sbUrl}/rest/v1/app_config`,{
+    method:'POST',
+    headers:{
+      'apikey':sbKey,
+      'Authorization':`Bearer ${sbKey}`,
+      'Content-Type':'application/json',
+      'Prefer':'resolution=merge-duplicates'
+    },
+    body:JSON.stringify({key, value, updated_at:new Date().toISOString()})
+  });
+  if(!res.ok){const e=await res.text();throw new Error(e);}
+  return true;
+}
+
+async function loadAllSettingsFromSupabase(sbUrl, sbKey){
+  try{
+    const res=await fetch(`${sbUrl}/rest/v1/app_config?select=*`,{
+      headers:{'apikey':sbKey,'Authorization':`Bearer ${sbKey}`}
+    });
+    if(!res.ok)return false;
+    const data=await res.json();
+    if(!data||!data.length)return false;
+    for(const row of data){
+      if(row.key==='claude_key' && row.value){ss('cfg-gemini',row.value);sv('cfg-gemini',row.value);}
+      if(row.key==='yt_key' && row.value){ss('cfg-yt',row.value);sv('cfg-yt',row.value);}
+      if(row.key==='brand' && row.value){ss('cfg-brand',row.value);sv('cfg-brand',row.value);sv('analyze-brand',row.value);}
+      if(row.key==='brand_desc' && row.value){ss('cfg-desc',row.value);sv('cfg-desc',row.value);}
+    }
+    return true;
+  }catch(e){
+    console.log('Supabase load error:',e.message);
+    return false;
+  }
 }
 
 function updateKeyIndicators(){
-  const fields=[
-    {id:'cfg-gemini', label:'Claude API Key'},
-    {id:'cfg-yt', label:'YouTube API Key'},
-    {id:'cfg-sb-url', label:'Supabase URL'},
-    {id:'cfg-sb-key', label:'Supabase Anon Key'},
-  ];
-  fields.forEach(f=>{
-    const val=ls(f.id);
-    const indicator=document.getElementById('ind-'+f.id);
-    if(!indicator)return;
-    if(val){
-      indicator.innerHTML=`<span style="color:var(--ok)">✓ Saved</span> <button class="btn bg bs" onclick="clearKey('${f.id}')" style="padding:2px 8px;font-size:10px">Clear</button>`;
-    } else {
-      indicator.innerHTML=`<span style="color:var(--mt)">Not set</span>`;
-    }
+  const fields=['cfg-gemini','cfg-yt','cfg-sb-url','cfg-sb-key'];
+  fields.forEach(id=>{
+    const val=ls(id);
+    const ind=document.getElementById('ind-'+id);
+    if(!ind)return;
+    ind.innerHTML=val
+      ? `<span style="color:var(--ok)">✓ Saved in this browser</span> <button class="btn bg bs" onclick="clearKey('${id}')" style="padding:2px 8px;font-size:10px">Clear</button>`
+      : `<span style="color:var(--mt)">Not set</span>`;
   });
 }
 
-async function loadSettingsFromSupabase(){
-  try{
-    const data=await sbFetch('GET','app_config?select=*');
-    if(!data)return;
-    for(const row of data){
-      if(row.key==='brand'){ss('cfg-brand',row.value);sv('cfg-brand',row.value);sv('analyze-brand',row.value);}
-      if(row.key==='brand_desc'){ss('cfg-desc',row.value);sv('cfg-desc',row.value);}
-    }
-  }catch(e){console.log('Supabase config load skipped');}
+async function loadFromSupabase(){
+  const sbUrl=gv('cfg-sb-url')||ls('cfg-sb-url');
+  const sbKey=gv('cfg-sb-key')||ls('cfg-sb-key');
+  if(!sbUrl||!sbKey){toast('Enter your Supabase URL and Anon Key first, then click Load');return;}
+  ss('cfg-sb-url',sbUrl);ss('cfg-sb-key',sbKey);
+  sv('cfg-sb-url',sbUrl);sv('cfg-sb-key',sbKey);
+  toast('Loading from Supabase...');
+  const loaded=await loadAllSettingsFromSupabase(sbUrl,sbKey);
+  if(loaded){
+    loadSettings();
+    updateKeyIndicators();
+    toast('✓ All keys loaded from Supabase!');
+  } else {
+    toast('Nothing in Supabase yet — fill in all keys and Save first');
+  }
 }
 
-function showPage(name,btn){
+
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');

@@ -313,12 +313,40 @@
 
     @media (max-width:640px) { .brain-grid { grid-template-columns:1fr; } }
 
+
+    /* ── Scheduler ── */
+    .sched-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .sched-card { background:var(--sur2); border:1px solid var(--bdr); border-radius:var(--r); padding:16px; border-left:4px solid var(--ac); position:relative; transition:all .15s; }
+    .sched-card:hover { border-color:var(--ac2); }
+    .sched-card.completed { opacity:.5; }
+    .sched-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; margin-bottom:8px; }
+    .sched-title { font-size:14px; font-weight:600; color:var(--tx); }
+    .sched-title.completed { text-decoration:line-through; color:var(--mt); }
+    .sched-date { font-size:12px; color:var(--mt); margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+    .sched-date.today { color:var(--warn); font-weight:600; }
+    .sched-date.overdue { color:#f87171; font-weight:600; }
+    .sched-date.soon { color:var(--ok); font-weight:600; }
+    .sched-desc { font-size:13px; color:var(--mt); line-height:1.6; margin-bottom:10px; }
+    .sched-ai-box { background:rgba(124,111,247,.06); border:1px solid rgba(124,111,247,.15); border-radius:var(--rs); padding:10px 12px; margin-top:8px; font-size:12px; color:var(--tx); line-height:1.7; }
+    .sched-ai-label { font-size:10px; font-weight:700; color:var(--ac2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+    .sched-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; align-items:center; }
+    .sched-cat-badge { padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600; text-transform:uppercase; background:rgba(124,111,247,.15); color:var(--ac2); }
+    .sched-ai-badge { padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600; background:rgba(52,211,153,.12); color:var(--ok); }
+    .upcoming-strip { background:var(--sur2); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px 16px; margin-bottom:8px; display:flex; align-items:center; gap:12px; }
+    .upcoming-date-box { width:44px; height:44px; border-radius:var(--rs); display:flex; flex-direction:column; align-items:center; justify-content:center; flex-shrink:0; }
+    .upcoming-day { font-size:18px; font-weight:700; line-height:1; }
+    .upcoming-month { font-size:9px; text-transform:uppercase; letter-spacing:.5px; }
+    .upcoming-info { flex:1; min-width:0; }
+    .upcoming-title { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .upcoming-sub { font-size:11px; color:var(--mt); margin-top:2px; }
+    @media (max-width:640px) { .sched-grid { grid-template-columns:1fr; } }
+
   </style>
 </head>
 <body>
 <!-- AUTH SCREEN -->
 <div class="auth-screen active" id="auth-screen"><div class="auth-box"><div class="auth-logo"><img src="./SynchedStudios.png" style="width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 12px auto;" onerror="this.style.display='none'" /><h1>Synched Studios</h1><p>Content CRM — Sign in to continue</p></div><div class="auth-tabs"><button class="auth-tab active" onclick="switchAuthTab('login',this)">Sign In</button><button class="auth-tab" onclick="switchAuthTab('register',this)">Create Account</button></div><!-- LOGIN --><div class="auth-form active" id="auth-login"><div class="auth-error" id="login-error"></div><div class="fr"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" /></div><div class="fr"><label>Password</label><input type="password" id="login-password" placeholder="Your password" /></div><button class="btn bp" style="width:100%;justify-content:center;margin-top:4px" id="login-btn" onclick="doLogin()">Sign In</button></div><!-- REGISTER --><div class="auth-form" id="auth-register"><div class="auth-error" id="register-error"></div><div class="auth-avatar-upload"><div class="auth-avatar-preview" id="reg-avatar-preview" onclick="document.getElementById('reg-avatar-input').click()"></div><label class="auth-avatar-label" for="reg-avatar-input">Upload profile photo (optional)</label><input type="file" id="reg-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)" /></div><div class="fg"><div class="fr"><label>Full name</label><input type="text" id="reg-name" placeholder="Your name" /></div><div class="fr"><label>Role</label><select id="reg-role"><option value="admin">Admin</option><option value="member">Member</option></select></div></div><div class="fr"><label>Email</label><input type="email" id="reg-email" placeholder="you@email.com" /></div><div class="fg"><div class="fr"><label>Password</label><input type="password" id="reg-password" placeholder="Create password" /></div><div class="fr"><label>Confirm password</label><input type="password" id="reg-confirm" placeholder="Repeat password" /></div></div><div class="fr"><label>Bio (optional)</label><textarea id="reg-bio" placeholder="Tell us about yourself..." style="min-height:60px"></textarea></div><button class="btn bp" style="width:100%;justify-content:center;margin-top:4px" id="register-btn" onclick="doRegister()">Create Account</button></div></div>
-</div><div class="app"><aside class="sidebar"><div class="logo"><img src="./SynchedStudios.png" alt="Synched Studios" style="width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 10px auto;" onerror="this.style.display='none'" />Synched Studios <small>Content CRM</small></div><button class="nav active" onclick="showPage('inbox',this)">Inbox <span class="badge" id="inbox-badge"></span></button><button class="nav" onclick="showPage('aibrain',this)" id="nav-aibrain" style="display:none">AI Brain</button><button class="nav" onclick="showPage('tasks',this)">Tasks <span class="badge" id="tasks-badge"></span></button><button class="nav" onclick="showPage('history',this)">History</button><button class="nav" onclick="showPage('analyze',this)">Analyze a Link</button><button class="nav" onclick="showPage('watchlist',this)">Watch List</button><button class="nav" onclick="showPage('settings',this)">Settings</button><div class="profile-section"><button class="profile-btn" onclick="showPage('profile',this)"><div class="profile-avatar" id="sidebar-avatar">?</div><div><div class="profile-name" id="sidebar-name">Loading...</div><div class="profile-role" id="sidebar-role"></div></div></button><button class="logout-btn" onclick="doLogout()">Sign out</button></div></aside><main class="main"><!-- Mobile profile header --><div class="mobile-profile" id="mobile-profile-bar"><div class="profile-avatar" id="mobile-avatar" style="width:32px;height:32px;font-size:12px">?</div><div style="flex:1"><div style="font-size:13px;font-weight:500" id="mobile-name">Loading...</div></div><button class="btn br bs" onclick="doLogout()">Sign out</button></div><!-- INBOX --><div id="page-inbox" class="page active"><div class="topbar"><div><h1>Inbox</h1><p>AI-generated content ready to copy and post</p></div><div style="display:flex;gap:8px"><button class="btn bg bs" onclick="loadInbox()">Refresh</button><button class="btn br bs" onclick="clearInbox()">Clear All</button></div></div><div class="content"><div class="info-box"><strong>No image API needed!</strong> Every post includes a ready-to-use image prompt.
+</div><div class="app"><aside class="sidebar"><div class="logo"><img src="./SynchedStudios.png" alt="Synched Studios" style="width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 10px auto;" onerror="this.style.display='none'" />Synched Studios <small>Content CRM</small></div><button class="nav active" onclick="showPage('inbox',this)">Inbox <span class="badge" id="inbox-badge"></span></button><button class="nav" onclick="showPage('aibrain',this)" id="nav-aibrain" style="display:none">AI Brain</button><button class="nav" onclick="showPage('scheduler',this)" id="nav-scheduler" style="display:none">Scheduler <span class="badge" id="scheduler-badge"></span></button><button class="nav" onclick="showPage('tasks',this)">Tasks <span class="badge" id="tasks-badge"></span></button><button class="nav" onclick="showPage('history',this)">History</button><button class="nav" onclick="showPage('analyze',this)">Analyze a Link</button><button class="nav" onclick="showPage('watchlist',this)">Watch List</button><button class="nav" onclick="showPage('settings',this)">Settings</button><div class="profile-section"><button class="profile-btn" onclick="showPage('profile',this)"><div class="profile-avatar" id="sidebar-avatar">?</div><div><div class="profile-name" id="sidebar-name">Loading...</div><div class="profile-role" id="sidebar-role"></div></div></button><button class="logout-btn" onclick="doLogout()">Sign out</button></div></aside><main class="main"><!-- Mobile profile header --><div class="mobile-profile" id="mobile-profile-bar"><div class="profile-avatar" id="mobile-avatar" style="width:32px;height:32px;font-size:12px">?</div><div style="flex:1"><div style="font-size:13px;font-weight:500" id="mobile-name">Loading...</div></div><button class="btn br bs" onclick="doLogout()">Sign out</button></div><!-- INBOX --><div id="page-inbox" class="page active"><div class="topbar"><div><h1>Inbox</h1><p>AI-generated content ready to copy and post</p></div><div style="display:flex;gap:8px"><button class="btn bg bs" onclick="loadInbox()">Refresh</button><button class="btn br bs" onclick="clearInbox()">Clear All</button></div></div><div class="content"><div class="info-box"><strong>No image API needed!</strong> Every post includes a ready-to-use image prompt.
           Copy it and paste into <strong>Google ImageFX</strong>, <strong>Canva AI</strong>, <strong>Adobe Firefly</strong>, or <strong>Bing Image Creator</strong> — all free!
         </div><div class="stats"><div class="stat"><div class="stat-num" id="stat-new">0</div><div class="stat-label">New posts</div></div><div class="stat"><div class="stat-num" id="stat-reviewed">0</div><div class="stat-label">Reviewed</div></div><div class="stat"><div class="stat-num" id="stat-posted">0</div><div class="stat-label">Posted</div></div><div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div></div><div class="filter-row"><button class="filter-btn active" onclick="setFilter('all',this)">All</button><button class="filter-btn" onclick="setFilter('new',this)">New</button><button class="filter-btn" onclick="setFilter('instagram',this)"> Instagram</button><button class="filter-btn" onclick="setFilter('tiktok',this)"> TikTok</button><button class="filter-btn" onclick="setFilter('facebook',this)"> Facebook</button></div><div class="post-list" id="post-list"><div class="empty"><div class="empty-icon"></div>No posts yet. Use "Analyze a Link" to get started!</div></div></div></div><!-- ANALYZE --><div id="page-analyze" class="page"><div class="topbar"><div><h1>Analyze a Link</h1><p>Paste any YouTube, Instagram, or Facebook URL to generate content</p></div></div><div class="content"><div class="info-box"><strong>How it works:</strong> Paste a URL → AI reads and analyzes the content → generates captions for Instagram, TikTok, and Facebook → gives you an image prompt to use in any free AI image tool. No image API needed!
         </div><div class="card"><div class="card-title">Content source</div><div class="fr"><label>URL — YouTube video, Instagram post, Facebook post, or any article</label><div class="input-row"><input id="analyze-url" type="url" placeholder="https://www.youtube.com/watch?v=..." /><button class="btn bp" id="analyze-btn" onclick="analyzeLink()">Generate</button></div></div><div class="fg"><div class="fr"><label>Brand name</label><input id="analyze-brand" type="text" placeholder="Synched Studios" /></div><div class="fr"><label>Tone</label><select id="analyze-tone"><option value="inspiring">Inspiring</option><option value="professional">Professional</option><option value="casual and fun">Casual & fun</option><option value="educational">Educational</option><option value="hype and energetic">Hype / Energetic</option><option value="storytelling">Storytelling</option></select></div></div><div class="fr"><label>What should the AI do with this content?</label><select id="analyze-mode"><option value="rewrite">Rewrite it in my brand voice</option><option value="extract">Extract key ideas and make original content</option><option value="summarize">Summarize and add my own spin</option><option value="auto">AI decides based on content</option></select></div></div><div id="analyze-results" style="display:none"><div class="card-title" style="margin-bottom:8px">Generated Content</div><div class="result-grid" id="result-grid"></div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn bp bs" onclick="saveAnalyzed()">Save to Inbox</button><button class="btn bg bs" onclick="analyzeLink()">Regenerate</button></div></div></div></div><!-- WATCH LIST --><div id="page-watchlist" class="page"><div class="topbar"><div><h1>Watch List</h1><p>Sources checked daily for new content</p></div></div><div class="content"><div class="card"><div class="card-title">Add a source</div><div class="fg"><div class="fr"><label>Name</label><input id="source-name" type="text" placeholder="e.g. Timbaland YouTube" /></div><div class="fr"><label>Platform</label><select id="source-platform"><option value="youtube">YouTube channel</option><option value="facebook">Facebook page</option></select></div></div><div class="fr"><label>URL</label><input id="source-url" type="url" placeholder="https://www.youtube.com/@channelname" /></div><button class="btn bp" onclick="addSource()">Add to Watch List</button></div><div class="banner"><strong>Instagram:</strong> Use "Analyze a Link" and paste Instagram post URLs manually — Instagram blocks automatic monitoring.<br><strong>Daily auto-check:</strong> Your Cloudflare Worker runs at 7am UTC (3pm Philippine time) and fills your Inbox automatically.
@@ -437,6 +465,143 @@
         </div>
       </div>
     </div>
+
+    <!-- SCHEDULER -->
+    <div id="page-scheduler" class="page">
+      <div class="topbar">
+        <div><h1>My Scheduler</h1><p>Personal reminders, AI-suggested events and important dates</p></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn bg bs" onclick="generateAISchedule()" id="ai-schedule-btn">AI Generate</button>
+          <button class="btn bp bs" onclick="openSchedModal()">+ Add Reminder</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- Upcoming this week -->
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Coming Up</span>
+            <span id="upcoming-count" style="font-size:12px;color:var(--mt)"></span>
+          </div>
+          <div id="upcoming-list">
+            <div style="font-size:13px;color:var(--mt)">No upcoming events in the next 30 days.</div>
+          </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="filter-row" id="sched-filter-row">
+          <button class="filter-btn active" onclick="setSchedFilter('all',this)">All</button>
+          <button class="filter-btn" onclick="setSchedFilter('birthday',this)">Birthdays</button>
+          <button class="filter-btn" onclick="setSchedFilter('anniversary',this)">Anniversary</button>
+          <button class="filter-btn" onclick="setSchedFilter('health',this)">Health</button>
+          <button class="filter-btn" onclick="setSchedFilter('exercise',this)">Exercise</button>
+          <button class="filter-btn" onclick="setSchedFilter('family',this)">Family</button>
+          <button class="filter-btn" onclick="setSchedFilter('friends',this)">Friends</button>
+          <button class="filter-btn" onclick="setSchedFilter('pet',this)">Pet</button>
+          <button class="filter-btn" onclick="setSchedFilter('self_care',this)">Self Care</button>
+          <button class="filter-btn" onclick="setSchedFilter('work',this)">Work</button>
+          <button class="filter-btn" onclick="setSchedFilter('travel',this)">Travel</button>
+          <button class="filter-btn" onclick="setSchedFilter('finance',this)">Finance</button>
+        </div>
+
+        <!-- Sort + view options -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+          <select id="sched-sort" onchange="renderSchedules()" style="width:auto;padding:6px 10px;font-size:12px">
+            <option value="date_asc">Date: Soonest first</option>
+            <option value="date_desc">Date: Latest first</option>
+            <option value="cat">By category</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mt);cursor:pointer">
+            <input type="checkbox" id="show-completed" onchange="renderSchedules()" style="width:14px;height:14px;accent-color:var(--ac)"> Show completed
+          </label>
+        </div>
+
+        <div class="sched-grid" id="sched-list">
+          <div class="empty" style="grid-column:1/-1">
+            <div style="font-size:24px;margin-bottom:8px">...</div>
+            No reminders yet. Click "+ Add Reminder" or "AI Generate" to get started.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Schedule Modal -->
+    <div id="sched-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;align-items:center;justify-content:center;padding:16px">
+      <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+          <h2 style="font-size:16px;font-weight:600" id="sched-modal-title">Add Reminder</h2>
+          <button onclick="closeSchedModal()" style="background:none;border:none;color:var(--mt);font-size:22px;cursor:pointer;line-height:1">x</button>
+        </div>
+        <div class="fr"><label>Title</label><input type="text" id="sched-title" placeholder="e.g. Wife's Birthday, Morning Run, Vet Appointment..." /></div>
+        <div class="fg">
+          <div class="fr">
+            <label>Category</label>
+            <select id="sched-category">
+              <option value="birthday">Birthday</option>
+              <option value="anniversary">Anniversary</option>
+              <option value="health">Health</option>
+              <option value="exercise">Exercise</option>
+              <option value="family">Family</option>
+              <option value="friends">Friends</option>
+              <option value="pet">Pet</option>
+              <option value="self_care">Self Care</option>
+              <option value="work">Work</option>
+              <option value="travel">Travel</option>
+              <option value="finance">Finance</option>
+              <option value="reminder">Reminder</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="fr">
+            <label>Recurrence</label>
+            <select id="sched-recurrence">
+              <option value="once">One time</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Every year</option>
+            </select>
+          </div>
+        </div>
+        <div class="fg">
+          <div class="fr"><label>Date</label><input type="date" id="sched-date" /></div>
+          <div class="fr"><label>Time (optional)</label><input type="time" id="sched-time" /></div>
+        </div>
+        <div class="fr"><label>Notes (optional)</label><textarea id="sched-desc" placeholder="Any details about this reminder..."></textarea></div>
+        <div class="fr">
+          <label style="display:flex;align-items:center;justify-content:space-between">
+            <span>AI Suggestions</span>
+            <button class="btn bg bs" onclick="getAISuggestion()" id="ai-suggest-btn" style="font-size:11px">Get AI Ideas</button>
+          </label>
+          <div id="sched-ai-suggestions" style="background:var(--sur2);border:1px solid var(--bdr2);border-radius:var(--rs);padding:10px 12px;font-size:12px;color:var(--mt);min-height:60px;line-height:1.7">
+            Fill in the title and category, then click "Get AI Ideas" for personalized suggestions.
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;flex-wrap:wrap">
+          <button class="btn bp" onclick="saveSchedule()" id="sched-save-btn">Save Reminder</button>
+          <button class="btn bg" onclick="closeSchedModal()">Cancel</button>
+          <button class="btn br bs" id="sched-delete-btn" onclick="deleteSchedule()" style="display:none;margin-left:auto">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI Generate Modal -->
+    <div id="ai-sched-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;align-items:center;justify-content:center;padding:16px">
+      <div style="background:var(--sur);border:1px solid var(--bdr);border-radius:var(--r);padding:28px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h2 style="font-size:16px;font-weight:600">AI Schedule Generator</h2>
+          <button onclick="document.getElementById('ai-sched-modal').style.display='none'" style="background:none;border:none;color:var(--mt);font-size:22px;cursor:pointer">x</button>
+        </div>
+        <p style="font-size:13px;color:var(--mt);margin-bottom:16px;line-height:1.7">
+          AI will read your entire AI Brain profile and automatically create personalized reminders — birthdays, anniversaries, health routines, pet schedules, and more.
+        </p>
+        <div id="ai-sched-result" style="display:none;max-height:400px;overflow-y:auto;margin-bottom:16px"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn bp" onclick="runAIScheduleGeneration()" id="run-ai-sched-btn">Generate My Schedule</button>
+          <button class="btn bg" onclick="document.getElementById('ai-sched-modal').style.display='none'">Close</button>
+        </div>
+      </div>
+    </div>
 </main>
 </div><!-- Bottom nav for mobile — outside app div so it doesn't interfere -->
 <nav class="bottom-nav">
@@ -447,7 +612,7 @@
     <button class="bnav" id="bnav-tasks" onclick="showPageMobile('tasks', this)">
       <span class="bbadge" id="tasks-badge-mobile"></span>Tasks
     </button>
-    <button class="bnav" id="bnav-aibrain" onclick="showPageMobile('aibrain', this)" style="display:none">AI Brain</button>
+    <button class="bnav" id="bnav-aibrain" onclick="showPageMobile('aibrain', this)" style="display:none">AI Brain</button><button class="bnav" id="bnav-scheduler" onclick="showPageMobile('scheduler', this)" style="display:none">Schedule</button>
     <button class="bnav" id="bnav-analyze" onclick="showPageMobile('analyze', this)">Analyze</button>
     <button class="bnav" id="bnav-history" onclick="showPageMobile('history', this)">History</button>
     <button class="bnav" id="bnav-watchlist" onclick="showPageMobile('watchlist', this)">Watch</button>
@@ -650,6 +815,7 @@ async function enterApp() {
   
   updateProfileUI();
   initAIBrain();
+  initScheduler();
   await loadAllFromSupabase(SB_URL, SB_KEY);
   updateKeyIndicators();
   loadInbox();
@@ -892,6 +1058,7 @@ function showPage(name,btn){
   }
   if(name==='history') loadHistory();
   if(name==='aibrain') { if(currentUser?.role !== 'admin') { toast('Access denied'); return; } loadAIBrain(); }
+  if(name==='scheduler') { if(currentUser?.role !== 'admin') { toast('Access denied'); return; } loadScheduler(); }
   if(name==='settings') updateKeyIndicators();
 }
 
@@ -910,6 +1077,7 @@ function showPageMobile(name, btn){
   }
   if(name==='history') loadHistory();
   if(name==='aibrain') { if(currentUser?.role !== 'admin') { toast('Access denied'); return; } loadAIBrain(); }
+  if(name==='scheduler') { if(currentUser?.role !== 'admin') { toast('Access denied'); return; } loadScheduler(); }
   if(name==='settings') updateKeyIndicators();
   document.querySelector('.main').scrollTo(0,0);
 }
@@ -2866,6 +3034,543 @@ async function getMembersContext() {
     return ctx;
   } catch(e) { return ''; }
 }
+
+
+// ══════════════════════════════════════════════════════════════
+// PERSONAL SCHEDULER
+// ══════════════════════════════════════════════════════════════
+
+let allSchedules = [];
+let currentSchedFilter = 'all';
+let editingSchedId = null;
+
+const CAT_COLORS = {
+  birthday:'#e1306c', anniversary:'#f97316', health:'#34d399',
+  exercise:'#22d3ee', family:'#a78bfa', friends:'#fbbf24',
+  pet:'#fb7185', self_care:'#86efac', work:'#7c6ff7',
+  travel:'#38bdf8', finance:'#4ade80', reminder:'#94a3b8', other:'#64748b'
+};
+
+const CAT_LABELS = {
+  birthday:'Birthday', anniversary:'Anniversary', health:'Health',
+  exercise:'Exercise', family:'Family', friends:'Friends',
+  pet:'Pet', self_care:'Self Care', work:'Work',
+  travel:'Travel', finance:'Finance', reminder:'Reminder', other:'Other'
+};
+
+// ── Init scheduler nav ─────────────────────────────────────────
+function initScheduler() {
+  if (currentUser?.role === 'admin') {
+    const navBtn = document.getElementById('nav-scheduler');
+    if (navBtn) navBtn.style.display = 'block';
+    const mobileBtn = document.getElementById('bnav-scheduler');
+    if (mobileBtn) mobileBtn.style.display = 'flex';
+  }
+}
+
+// ── Load schedules ─────────────────────────────────────────────
+async function loadScheduler() {
+  if (currentUser?.role !== 'admin') return;
+  try {
+    const data = await sbGet(`schedules?user_id=eq.${currentUser.id}&order=date.asc`);
+    allSchedules = data || [];
+    renderSchedules();
+    renderUpcoming();
+    updateSchedulerBadge();
+  } catch(e) {
+    console.error('Scheduler load error:', e);
+  }
+}
+
+// ── Render upcoming strip ──────────────────────────────────────
+function renderUpcoming() {
+  const container = document.getElementById('upcoming-list');
+  const countEl = document.getElementById('upcoming-count');
+  if (!container) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const in30 = new Date(today); in30.setDate(in30.getDate() + 30);
+
+  // Get upcoming including yearly recurrences
+  const upcoming = [];
+  for (const s of allSchedules) {
+    if (s.completed) continue;
+    const eventDate = getNextOccurrence(s);
+    if (!eventDate) continue;
+    if (eventDate >= today && eventDate <= in30) {
+      upcoming.push({ ...s, nextDate: eventDate });
+    }
+  }
+  upcoming.sort((a,b) => a.nextDate - b.nextDate);
+
+  if (countEl) countEl.textContent = upcoming.length + ' event' + (upcoming.length !== 1 ? 's' : '') + ' in next 30 days';
+
+  if (!upcoming.length) {
+    container.innerHTML = '<div style="font-size:13px;color:var(--mt)">No upcoming events in the next 30 days.</div>';
+    return;
+  }
+
+  container.innerHTML = upcoming.slice(0, 8).map(s => {
+    const d = s.nextDate;
+    const day = d.getDate();
+    const month = d.toLocaleString('en-US', { month:'short' }).toUpperCase();
+    const daysUntil = Math.round((d - today) / 86400000);
+    const urgency = daysUntil === 0 ? 'TODAY!' : daysUntil === 1 ? 'Tomorrow' : 'In ' + daysUntil + ' days';
+    const color = CAT_COLORS[s.category] || '#7c6ff7';
+    return `<div class="upcoming-strip" onclick="openSchedModal('${s.id}')" style="cursor:pointer">
+      <div class="upcoming-date-box" style="background:${color}22;color:${color}">
+        <div class="upcoming-day">${day}</div>
+        <div class="upcoming-month">${month}</div>
+      </div>
+      <div class="upcoming-info">
+        <div class="upcoming-title">${esc(s.title)}</div>
+        <div class="upcoming-sub">${CAT_LABELS[s.category] || s.category} · <strong style="color:${daysUntil <= 3 ? '#fbbf24' : 'var(--mt)'}">${urgency}</strong></div>
+      </div>
+      ${s.ai_generated ? '<span style="font-size:10px;background:rgba(52,211,153,.12);color:var(--ok);padding:2px 6px;border-radius:999px;flex-shrink:0">AI</span>' : ''}
+    </div>`;
+  }).join('');
+}
+
+function getNextOccurrence(s) {
+  const base = new Date(s.date + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  if (s.recurrence === 'once') return base >= today ? base : null;
+  if (s.recurrence === 'yearly') {
+    const thisYear = new Date(today.getFullYear(), base.getMonth(), base.getDate());
+    if (thisYear >= today) return thisYear;
+    return new Date(today.getFullYear() + 1, base.getMonth(), base.getDate());
+  }
+  if (s.recurrence === 'monthly') {
+    let d = new Date(today.getFullYear(), today.getMonth(), base.getDate());
+    if (d < today) d.setMonth(d.getMonth() + 1);
+    return d;
+  }
+  if (s.recurrence === 'weekly') {
+    let d = new Date(today);
+    while (d.getDay() !== base.getDay()) d.setDate(d.getDate() + 1);
+    return d;
+  }
+  if (s.recurrence === 'daily') return today;
+  return base;
+}
+
+// ── Render schedule cards ──────────────────────────────────────
+function renderSchedules() {
+  const container = document.getElementById('sched-list');
+  if (!container) return;
+
+  const showCompleted = document.getElementById('show-completed')?.checked;
+  const sort = document.getElementById('sched-sort')?.value || 'date_asc';
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  let filtered = allSchedules.filter(s => showCompleted ? true : !s.completed);
+  if (currentSchedFilter !== 'all') filtered = filtered.filter(s => s.category === currentSchedFilter);
+
+  // Sort
+  filtered.sort((a, b) => {
+    if (sort === 'date_asc') return new Date(a.date) - new Date(b.date);
+    if (sort === 'date_desc') return new Date(b.date) - new Date(a.date);
+    if (sort === 'cat') return a.category.localeCompare(b.category);
+    return 0;
+  });
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty" style="grid-column:1/-1"><div style="font-size:24px;margin-bottom:8px">...</div>No reminders in this category.</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(s => {
+    const nextDate = getNextOccurrence(s);
+    const color = CAT_COLORS[s.category] || '#7c6ff7';
+    const daysUntil = nextDate ? Math.round((nextDate - today) / 86400000) : null;
+    let dateStatus = '';
+    let dateClass = '';
+    if (daysUntil !== null) {
+      if (daysUntil === 0) { dateStatus = ' — TODAY!'; dateClass = 'today'; }
+      else if (daysUntil < 0) { dateStatus = ' — Overdue'; dateClass = 'overdue'; }
+      else if (daysUntil <= 7) { dateStatus = ' — In ' + daysUntil + ' days'; dateClass = 'soon'; }
+    }
+
+    const dateStr = nextDate
+      ? nextDate.toLocaleDateString('en-US', { weekday:'short', month:'long', day:'numeric', year:'numeric' })
+      : new Date(s.date + 'T00:00:00').toLocaleDateString('en-US', { month:'long', day:'numeric', year:'numeric' });
+
+    const timeStr = s.time ? ' at ' + formatTime(s.time) : '';
+    const recurrenceLabel = s.recurrence !== 'once' ? ' · ' + s.recurrence.charAt(0).toUpperCase() + s.recurrence.slice(1) : '';
+
+    return `<div class="sched-card ${s.completed ? 'completed' : ''}" style="border-left-color:${color}">
+      <div class="sched-card-header">
+        <div>
+          <span class="sched-cat-badge" style="background:${color}22;color:${color}">${CAT_LABELS[s.category] || s.category}</span>
+          ${s.ai_generated ? '<span class="sched-ai-badge" style="margin-left:4px">AI</span>' : ''}
+        </div>
+        <input type="checkbox" ${s.completed ? 'checked' : ''} onchange="toggleSchedComplete('${s.id}',this.checked)"
+          style="width:16px;height:16px;accent-color:${color};cursor:pointer;flex-shrink:0" title="Mark complete" />
+      </div>
+      <div class="sched-title ${s.completed ? 'completed' : ''}">${esc(s.title)}</div>
+      <div class="sched-date ${dateClass}">${dateStr}${timeStr}${recurrenceLabel}${dateStatus}</div>
+      ${s.description ? `<div class="sched-desc">${esc(s.description)}</div>` : ''}
+      ${s.ai_suggestions ? `<div class="sched-ai-box"><div class="sched-ai-label">AI Suggestions</div>${esc(s.ai_suggestions)}</div>` : ''}
+      <div class="sched-actions">
+        <button class="btn bg bs" onclick="openSchedModal('${s.id}')">Edit</button>
+        <button class="btn bg bs" onclick="refreshAISuggestion('${s.id}')">Refresh AI Tips</button>
+        <button class="btn br bs" onclick="deleteScheduleById('${s.id}')">Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function formatTime(t) {
+  if (!t) return '';
+  const [h, m] = t.split(':');
+  const hour = parseInt(h);
+  return (hour % 12 || 12) + ':' + m + (hour < 12 ? ' AM' : ' PM');
+}
+
+function setSchedFilter(filter, btn) {
+  currentSchedFilter = filter;
+  document.querySelectorAll('#sched-filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderSchedules();
+}
+
+function updateSchedulerBadge() {
+  const today = new Date(); today.setHours(0,0,0,0);
+  const in7 = new Date(today); in7.setDate(in7.getDate() + 7);
+  const count = allSchedules.filter(s => {
+    if (s.completed) return false;
+    const next = getNextOccurrence(s);
+    return next && next >= today && next <= in7;
+  }).length;
+  const badge = document.getElementById('scheduler-badge');
+  if (badge) { badge.textContent = count; badge.style.display = count > 0 ? 'inline' : 'none'; }
+}
+
+// ── Schedule Modal ─────────────────────────────────────────────
+function openSchedModal(schedId = null) {
+  editingSchedId = schedId;
+  document.getElementById('sched-modal').style.display = 'flex';
+  document.getElementById('sched-modal-title').textContent = schedId ? 'Edit Reminder' : 'Add Reminder';
+  document.getElementById('sched-delete-btn').style.display = schedId ? 'inline-flex' : 'none';
+  document.getElementById('sched-ai-suggestions').textContent = 'Fill in the title and category, then click "Get AI Ideas" for personalized suggestions.';
+  document.getElementById('sched-ai-suggestions').style.color = 'var(--mt)';
+
+  if (schedId) {
+    const s = allSchedules.find(x => x.id === schedId);
+    if (s) {
+      document.getElementById('sched-title').value = s.title || '';
+      document.getElementById('sched-category').value = s.category || 'reminder';
+      document.getElementById('sched-recurrence').value = s.recurrence || 'once';
+      document.getElementById('sched-date').value = s.date || '';
+      document.getElementById('sched-time').value = s.time || '';
+      document.getElementById('sched-desc').value = s.description || '';
+      if (s.ai_suggestions) {
+        document.getElementById('sched-ai-suggestions').textContent = s.ai_suggestions;
+        document.getElementById('sched-ai-suggestions').style.color = 'var(--tx)';
+      }
+    }
+  } else {
+    document.getElementById('sched-title').value = '';
+    document.getElementById('sched-category').value = 'reminder';
+    document.getElementById('sched-recurrence').value = 'once';
+    document.getElementById('sched-date').value = '';
+    document.getElementById('sched-time').value = '';
+    document.getElementById('sched-desc').value = '';
+  }
+}
+
+function closeSchedModal() {
+  document.getElementById('sched-modal').style.display = 'none';
+  editingSchedId = null;
+}
+
+// ── Get AI suggestion in modal ─────────────────────────────────
+async function getAISuggestion() {
+  const title = document.getElementById('sched-title').value.trim();
+  const category = document.getElementById('sched-category').value;
+  const date = document.getElementById('sched-date').value;
+  const apiKey = cfg.gemini;
+  if (!apiKey) { toast('Add your Claude API key in Settings'); return; }
+  if (!title) { toast('Enter a title first'); return; }
+
+  const btn = document.getElementById('ai-suggest-btn');
+  btn.disabled = true; btn.textContent = 'Thinking...';
+
+  try {
+    const aiContext = await getAIContext();
+    const dateStr = date ? new Date(date + 'T00:00:00').toLocaleDateString('en-US', { month:'long', day:'numeric' }) : '';
+
+    const prompt = `You are a personal AI assistant for ${currentUser?.name || 'the admin'}.
+
+${aiContext}
+
+They have a personal reminder:
+Title: ${title}
+Category: ${category}
+Date: ${dateStr || 'not set yet'}
+
+Based on everything you know about them, give 3-5 specific, personalized suggestions for this event.
+Examples: gift ideas based on the person's interests, how to prepare, what to do on the day, what to avoid, etc.
+Be warm, specific, and practical. Keep it under 150 words. No bullet symbols, just numbered suggestions.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, messages: [{ role: 'user', content: prompt }] })
+    });
+
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || '';
+    const el = document.getElementById('sched-ai-suggestions');
+    el.textContent = reply;
+    el.style.color = 'var(--tx)';
+  } catch(e) {
+    toast('AI error: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Get AI Ideas';
+  }
+}
+
+// ── Save schedule ──────────────────────────────────────────────
+async function saveSchedule() {
+  const title = document.getElementById('sched-title').value.trim();
+  const date = document.getElementById('sched-date').value;
+  if (!title) { toast('Please enter a title'); return; }
+  if (!date) { toast('Please pick a date'); return; }
+
+  const btn = document.getElementById('sched-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    const aiSuggestions = document.getElementById('sched-ai-suggestions').textContent;
+    const hasAISuggestions = aiSuggestions && !aiSuggestions.includes('Fill in the title');
+
+    const data = {
+      user_id: currentUser.id,
+      title,
+      category: document.getElementById('sched-category').value,
+      recurrence: document.getElementById('sched-recurrence').value,
+      date,
+      time: document.getElementById('sched-time').value || null,
+      description: document.getElementById('sched-desc').value.trim() || null,
+      ai_suggestions: hasAISuggestions ? aiSuggestions : null,
+      updated_at: new Date().toISOString()
+    };
+
+    if (editingSchedId) {
+      await fetch(`${SB_URL}/rest/v1/schedules?id=eq.${editingSchedId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/schedules`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    }
+
+    closeSchedModal();
+    await loadScheduler();
+    toast(editingSchedId ? 'Reminder updated!' : 'Reminder saved!');
+  } catch(e) {
+    toast('Failed to save: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Reminder';
+  }
+}
+
+// ── Delete schedule ────────────────────────────────────────────
+async function deleteSchedule() {
+  if (!editingSchedId || !confirm('Delete this reminder?')) return;
+  await deleteScheduleById(editingSchedId);
+  closeSchedModal();
+}
+
+async function deleteScheduleById(id) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/schedules?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    await loadScheduler();
+    toast('Reminder deleted');
+  } catch(e) { toast('Failed to delete'); }
+}
+
+// ── Toggle complete ────────────────────────────────────────────
+async function toggleSchedComplete(id, completed) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/schedules?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ completed, updated_at: new Date().toISOString() })
+    });
+    const s = allSchedules.find(x => x.id === id);
+    if (s) s.completed = completed;
+    renderSchedules();
+    renderUpcoming();
+    updateSchedulerBadge();
+  } catch(e) { toast('Failed to update'); }
+}
+
+// ── Refresh AI suggestion on a card ───────────────────────────
+async function refreshAISuggestion(id) {
+  const s = allSchedules.find(x => x.id === id);
+  if (!s) return;
+  const apiKey = cfg.gemini;
+  if (!apiKey) { toast('Add your Claude API key in Settings'); return; }
+
+  toast('Getting fresh AI suggestions...');
+  try {
+    const aiContext = await getAIContext();
+    const dateStr = new Date(s.date + 'T00:00:00').toLocaleDateString('en-US', { month:'long', day:'numeric' });
+
+    const prompt = `You are a personal AI assistant for ${currentUser?.name || 'the admin'}.
+
+${aiContext}
+
+Personal reminder: "${s.title}" (${s.category}) on ${dateStr}.
+${s.description ? 'Notes: ' + s.description : ''}
+
+Give 3-5 fresh, specific, personalized suggestions for this event based on everything you know about them.
+Be practical and warm. Under 150 words. Numbered list.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, messages: [{ role: 'user', content: prompt }] })
+    });
+
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || '';
+
+    await fetch(`${SB_URL}/rest/v1/schedules?id=eq.${id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ai_suggestions: reply, updated_at: new Date().toISOString() })
+    });
+
+    if (s) s.ai_suggestions = reply;
+    renderSchedules();
+    toast('AI suggestions updated!');
+  } catch(e) { toast('AI error: ' + e.message); }
+}
+
+// ── AI Auto-generate schedule from brain ──────────────────────
+function generateAISchedule() {
+  document.getElementById('ai-sched-modal').style.display = 'flex';
+  document.getElementById('ai-sched-result').style.display = 'none';
+  document.getElementById('run-ai-sched-btn').disabled = false;
+  document.getElementById('run-ai-sched-btn').textContent = 'Generate My Schedule';
+}
+
+async function runAIScheduleGeneration() {
+  const apiKey = cfg.gemini;
+  if (!apiKey) { toast('Add your Claude API key in Settings'); return; }
+
+  const btn = document.getElementById('run-ai-sched-btn');
+  btn.disabled = true; btn.textContent = 'Analyzing your profile...';
+
+  const resultDiv = document.getElementById('ai-sched-result');
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = '<div style="color:var(--mt);font-size:13px">Reading your AI Brain and creating personalized reminders...</div>';
+
+  try {
+    const aiContext = await getAIContext();
+    const today = new Date().toISOString().split('T')[0];
+    const currentYear = new Date().getFullYear();
+
+    const prompt = `You are a personal AI scheduler for ${currentUser?.name || 'the admin'}.
+Today is ${today}.
+
+${aiContext}
+
+Based on everything you know about this person, generate a list of important personal reminders and recurring schedules.
+
+Look for and create reminders for:
+- Birthdays of family members, friends, partners mentioned
+- Wedding anniversaries or relationship anniversaries
+- Health checkups or medical appointments patterns
+- Exercise routines mentioned
+- Pet care schedules (vet, grooming, etc.)
+- Important work deadlines or recurring events
+- Personal goals with deadlines
+- Financial reminders (bills, taxes, etc.)
+- Self-care routines
+- Any other important dates mentioned
+
+Return ONLY a JSON array, no markdown, no explanation:
+[
+  {
+    "title": "Event title",
+    "category": "birthday|anniversary|health|exercise|family|friends|pet|self_care|work|travel|finance|reminder|other",
+    "date": "YYYY-MM-DD",
+    "recurrence": "once|daily|weekly|monthly|yearly",
+    "description": "Brief context",
+    "ai_suggestions": "2-3 specific personalized suggestions for this event"
+  }
+]
+
+Use ${currentYear} or ${currentYear + 1} for dates. Generate 5-15 reminders based on what you know. Only include events that are clearly supported by the context.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 2048, messages: [{ role: 'user', content: prompt }] })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'API error');
+
+    let raw = data.content?.[0]?.text || '';
+    raw = raw.replace(/```json|```/g, '').trim();
+    const schedules = JSON.parse(raw);
+
+    // Show preview
+    resultDiv.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:12px;color:var(--ac2)">AI found ' + schedules.length + ' reminders to add:</div>' +
+      schedules.map((s, i) => `<div style="background:var(--sur2);border:1px solid var(--bdr);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:600;font-size:13px">${esc(s.title)}</div>
+        <div style="font-size:11px;color:var(--mt);margin-top:3px">${s.category} · ${s.date} · ${s.recurrence}</div>
+        ${s.ai_suggestions ? '<div style="font-size:12px;color:var(--mt);margin-top:4px">' + esc(s.ai_suggestions) + '</div>' : ''}
+      </div>`).join('') +
+      '<button class="btn bp" onclick="saveAIGeneratedSchedules(' + JSON.stringify(schedules).replace(/"/g, '&quot;') + ')" style="margin-top:8px;width:100%">Save All ' + schedules.length + ' Reminders</button>';
+
+    btn.textContent = 'Regenerate';
+    btn.disabled = false;
+  } catch(e) {
+    resultDiv.innerHTML = '<div style="color:#f87171;font-size:13px">Error: ' + esc(e.message) + '</div>';
+    btn.disabled = false; btn.textContent = 'Try Again';
+  }
+}
+
+async function saveAIGeneratedSchedules(schedulesData) {
+  let saved = 0;
+  for (const s of schedulesData) {
+    try {
+      await fetch(`${SB_URL}/rest/v1/schedules`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: currentUser.id,
+          title: s.title,
+          category: s.category,
+          date: s.date,
+          recurrence: s.recurrence || 'once',
+          description: s.description || null,
+          ai_suggestions: s.ai_suggestions || null,
+          ai_generated: true
+        })
+      });
+      saved++;
+    } catch(e) { console.error('Save schedule error:', e); }
+  }
+  document.getElementById('ai-sched-modal').style.display = 'none';
+  await loadScheduler();
+  toast('Saved ' + saved + ' AI-generated reminders!');
+}
+
 </script>
 </body>
 </html>

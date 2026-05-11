@@ -891,7 +891,7 @@ function showPage(name,btn){
     if(newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
   }
   if(name==='history') loadHistory();
-  if(name==='aibrain') loadAIBrain();
+  if(name==='aibrain') { if(currentUser?.role !== 'admin') { toast('Access denied'); return; } loadAIBrain(); }
   if(name==='settings') updateKeyIndicators();
 }
 
@@ -909,7 +909,7 @@ function showPageMobile(name, btn){
     if(newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
   }
   if(name==='history') loadHistory();
-  if(name==='aibrain') loadAIBrain();
+  if(name==='aibrain') { if(currentUser?.role !== 'admin') { toast('Access denied'); return; } loadAIBrain(); }
   if(name==='settings') updateKeyIndicators();
   document.querySelector('.main').scrollTo(0,0);
 }
@@ -2007,17 +2007,20 @@ let currentTranscript = '';
 
 // ── Show AI Brain nav for admin only ──────────────────────────
 function initAIBrain() {
-  if (currentUser?.role === 'admin') {
-    const navBtn = document.getElementById('nav-aibrain');
-    if (navBtn) navBtn.style.display = 'block';
-    const mobileBtn = document.getElementById('bnav-aibrain');
-    if (mobileBtn) mobileBtn.style.display = 'flex';
-    // Make sure aibrain is in showPage handlers
-  }
+  const isAdmin = currentUser?.role === 'admin';
+  // Show nav buttons only for admin
+  const navBtn = document.getElementById('nav-aibrain');
+  if (navBtn) navBtn.style.display = isAdmin ? 'block' : 'none';
+  const mobileBtn = document.getElementById('bnav-aibrain');
+  if (mobileBtn) mobileBtn.style.display = isAdmin ? 'flex' : 'none';
+  // Hide the page entirely for non-admins
+  const page = document.getElementById('page-aibrain');
+  if (page) page.style.display = isAdmin ? '' : 'none';
 }
 
 // ── Load AI Brain entries ──────────────────────────────────────
 async function loadAIBrain() {
+  if (currentUser?.role !== 'admin') { toast('Access denied'); return; }
   try {
     const entries = await sbGet(`ai_brain?user_id=eq.${currentUser.id}&active=eq.true&order=created_at.desc`);
     allBrainEntries = entries || [];

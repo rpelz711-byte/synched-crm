@@ -2297,66 +2297,132 @@ function startSpeechRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) return false;
 
-  const recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-
   const btn = document.getElementById('voice-btn');
   const statusEl = document.getElementById('voice-status');
   const transcriptEl = document.getElementById('voice-transcript');
 
-  recognition.onstart = () => {
-    isRecording = true;
-    btn.classList.add('recording');
-    btn.textContent = 'STOP';
-    btn.onclick = () => { recognition.stop(); };
-    statusEl.textContent = 'Listening... speak now';
-    transcriptEl.style.display = 'block';
-    transcriptEl.textContent = '';
-    transcriptEl.style.color = 'var(--mt)';
-    document.getElementById('voice-ai-response').style.display = 'none';
-  };
+  let fullTranscript = '';
+  let recognitionActive = false;
+  let restartTimer = null;
 
-  recognition.onresult = (event) => {
-    let interim = '';
-    let final = '';
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const text = event.results[i][0].transcript;
-      if (event.results[i].isFinal) final += text;
-      else interim += text;
+  function createRecognition() {
+    const recognition = new SpeechRecognition();
+    // continuous=true keeps listening, interimResults shows live text
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'en-US';
+    recognition.maxAlternatives = 1;
+    return recognition;
+  }
+
+  let recognition = createRecognition();
+
+  function startListening() {
+    try {
+      recognition = createRecognition();
+
+      recognition.onstart = () => {
+        recognitionActive = true;
+        statusEl.textContent = 'Listening... speak freely, tap STOP when done';
+        transcriptEl.style.color = 'var(--mt)';
+      };
+
+      recognition.onresult = (event) => {
+        let interim = '';
+        let newFinal = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const text = event.results[i][0].transcript;
+          if (event.results[i].isFinal) {
+            newFinal += text + ' ';
+          } else {
+            interim += text;
+          }
+        }
+        if (newFinal) {
+          fullTranscript += newFinal;
+          currentTranscript = fullTranscript.trim();
+        }
+        // Show full transcript + current interim
+        transcriptEl.textContent = fullTranscript + interim;
+        transcriptEl.style.color = 'var(--tx)';
+        // Update status with word count
+        const words = (fullTranscript + interim).trim().split(/\s+/).filter(Boolean).length;
+        statusEl.textContent = `Recording... ${words} word${words !== 1 ? 's' : ''} — tap STOP when done`;
+      };
+
+      recognition.onend = () => {
+        recognitionActive = false;
+        // If still in recording mode, restart to keep going
+        if (isRecording) {
+          restartTimer = setTimeout(() => {
+            if (isRecording) {
+              startListening();
+            }
+          }, 100);
+        }
+      };
+
+      recognition.onerror = (e) => {
+        recognitionActive = false;
+        if (e.error === 'not-allowed') {
+          isRecording = false;
+          btn.classList.remove('recording');
+          btn.textContent = 'MIC';
+          btn.onclick = () => toggleVoice();
+          statusEl.textContent = 'Microphone blocked. Allow in browser settings.';
+        } else if (e.error === 'no-speech') {
+          // No speech detected — restart if still recording
+          if (isRecording) {
+            restartTimer = setTimeout(() => {
+              if (isRecording) startListening();
+            }, 200);
+          }
+        } else if (e.error !== 'aborted') {
+          console.log('Speech error:', e.error);
+          if (isRecording) {
+            restartTimer = setTimeout(() => {
+              if (isRecording) startListening();
+            }, 300);
+          }
+        }
+      };
+
+      recognition.start();
+    } catch(e) {
+      console.error('Recognition start error:', e);
     }
-    transcriptEl.textContent = (final || interim);
-    transcriptEl.style.color = final ? 'var(--tx)' : 'var(--mt)';
-    if (final) currentTranscript = final;
-  };
+  }
 
-  recognition.onend = () => {
+  // Stop function that cleans up
+  function stopListening() {
     isRecording = false;
+    if (restartTimer) clearTimeout(restartTimer);
+    try { recognition.abort(); } catch(e) {}
     btn.classList.remove('recording');
     btn.textContent = 'MIC';
     btn.onclick = () => toggleVoice();
     if (currentTranscript) {
-      statusEl.textContent = 'Got it! Send to AI?';
+      statusEl.textContent = 'Done! Review and send to AI.';
       showVoiceActions();
     } else {
-      statusEl.textContent = 'Nothing heard. Tap to try again.';
+      statusEl.textContent = 'Nothing recorded. Tap to try again.';
     }
-  };
+  }
 
-  recognition.onerror = (e) => {
-    isRecording = false;
-    btn.classList.remove('recording');
-    btn.textContent = 'MIC';
-    btn.onclick = () => toggleVoice();
-    if (e.error === 'not-allowed') {
-      statusEl.textContent = 'Microphone blocked. Allow in browser settings.';
-    } else {
-      statusEl.textContent = 'Error: ' + e.error + '. Tap to retry.';
-    }
-  };
+  // Set up stop button
+  isRecording = true;
+  btn.classList.add('recording');
+  btn.textContent = 'STOP';
+  btn.onclick = () => stopListening();
 
-  recognition.start();
+  // Show transcript area
+  transcriptEl.style.display = 'block';
+  transcriptEl.textContent = '';
+  document.getElementById('voice-ai-response').style.display = 'none';
+  document.getElementById('voice-send-btn').style.display = 'none';
+  document.getElementById('voice-clear-btn').style.display = 'none';
+
+  startListening();
   return true;
 }
 

@@ -2675,22 +2675,27 @@ ${membersContext}
 The user just gave you this voice command:
 "${transcript}"
 
-Based on their personal context and team members above, respond helpfully. You can:
-1. Save context to AI Brain: SAVE_CONTEXT: [category] | [title] | [content]
+Based on their personal context and team members above, respond helpfully. You have these actions:
+
+1. Save to AI Brain: SAVE_CONTEXT: [category] | [title] | [content]
    Categories: personal, work, family, love_life, health, goals, preferences, rules, schedule, finances, other
 
-2. Create and assign a task: CREATE_TASK: [title] | [description] | [category] | [due_date YYYY-MM-DD or null] | [assigned_member_id or null]
-   - To assign to a member, use their exact ID from the team members list above
-   - If admin says "assign to Robert" or "give to Nate", match by name and use their ID
-   - If assigning to multiple people, create multiple CREATE_TASK lines
+2. Add to personal Scheduler (for personal events, reminders, special occasions, anniversaries, birthdays, dates, celebrations, health, exercise, pet care):
+   CREATE_SCHEDULE: [title] | [date YYYY-MM-DD] | [category] | [recurrence: once/yearly/monthly/weekly/daily] | [detailed description of what to do, suggestions, ideas] | [ai_suggestions: specific personalized recommendations]
+   Use this for: anniversaries, birthdays, date nights, personal reminders, health appointments, exercise routines, pet schedules, anything personal
 
-3. Give advice, reminders, or answer questions based on what you know
+3. Create a work task (for things that need to be done by the admin or team members):
+   CREATE_TASK: [title] | [description] | [category] | [due_date YYYY-MM-DD or null] | [assigned_member_id or null]
+   Use this for: work deliverables, projects, assignments for team members
+
+KEY RULE: If someone asks about a special occasion, date night, anniversary, birthday, gift ideas, personal event — use CREATE_SCHEDULE, NOT CREATE_TASK.
 
 Rules:
-- Always respond conversationally first (1-3 sentences)
-- Then add any SAVE_CONTEXT or CREATE_TASK lines on new lines at the end
+- Always respond conversationally first (2-4 sentences with your ideas and suggestions)
+- Then add action lines at the end on new lines
 - When assigning tasks, confirm who you are assigning to by name
-- Be specific and actionable`;
+- For scheduler events, include rich suggestions in the ai_suggestions field
+- Be warm, specific, and actionable`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -2717,6 +2722,53 @@ Rules:
     responseEl.style.display = 'block';
     responseEl.innerHTML = '<strong>AI Response:</strong><br>' + esc(aiReply);
 
+
+    // Auto-execute CREATE_SCHEDULE if present (personal events → Scheduler)
+    const scheduleMatches = [];
+    const schedRegex = /CREATE_SCHEDULE:([^|\n]+)[|]([^|\n]+)[|]([^|\n]+)[|]([^|\n]+)[|]([^|\n]+)(?:[|]([^\n]*))?/g;
+    let sMatch;
+    while ((sMatch = schedRegex.exec(aiReply)) !== null) { scheduleMatches.push(sMatch); }
+
+    if (scheduleMatches.length > 0) {
+      let schedSaved = 0;
+      for (const sm of scheduleMatches) {
+        const sTitle = (sm[1]||'').trim();
+        const sDate = ((sm[2]||'').trim().match(/\d{4}-\d{2}-\d{2}/) || [''])[0];
+        const sCat = (sm[3]||'birthday').trim().toLowerCase().replace(/\s+/g,'_');
+        const sRecurrence = (sm[4]||'once').trim().toLowerCase();
+        const sDesc = (sm[5]||'').trim();
+        const sAISuggestions = (sm[6]||'').trim();
+        const validCats = ['birthday','anniversary','health','exercise','family','friends','pet','self_care','work','travel','finance','reminder','other'];
+        const finalCat = validCats.includes(sCat) ? sCat : 'reminder';
+        const validRec = ['once','daily','weekly','monthly','yearly'];
+        const finalRec = validRec.includes(sRecurrence) ? sRecurrence : 'once';
+
+        if (!sTitle || !sDate) continue;
+
+        const schedRes = await fetch(`${SB_URL}/rest/v1/schedules`, {
+          method: 'POST',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: currentUser.id,
+            title: sTitle,
+            date: sDate,
+            category: finalCat,
+            recurrence: finalRec,
+            description: sDesc || null,
+            ai_suggestions: sAISuggestions || null,
+            ai_generated: true
+          })
+        });
+        if (schedRes.ok) schedSaved++;
+      }
+      if (schedSaved > 0) {
+        toast('Added ' + schedSaved + ' event' + (schedSaved !== 1 ? 's' : '') + ' to your Scheduler!');
+        // Reload scheduler if on that page
+        if (document.getElementById('page-scheduler')?.classList.contains('active')) {
+          await loadScheduler();
+        }
+      }
+    }
 
     // Auto-execute SAVE_CONTEXT if present
     const saveMatch = aiReply.match(/SAVE_CONTEXT:([^|]+)\|([^|]+)\|([^\n]+)/);

@@ -2308,107 +2308,74 @@ function startSpeechRecognition() {
   const statusEl = document.getElementById('voice-status');
   const transcriptEl = document.getElementById('voice-transcript');
 
-  let fullTranscript = '';
-  let recognitionActive = false;
+  // Accumulate ONLY finalized sentences here
+  let finalTranscript = '';
+  let recognition = null;
   let restartTimer = null;
+  let stopped = false;
 
-  function createRecognition() {
-    const recognition = new SpeechRecognition();
-    // continuous=true keeps listening, interimResults shows live text
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = 'en-US';
-    recognition.maxAlternatives = 1;
-    return recognition;
+  function buildRecognition() {
+    const r = new SpeechRecognition();
+    r.continuous = true;
+    r.interimResults = true;
+    r.lang = 'en-US';
+    r.maxAlternatives = 1;
+
+    r.onresult = (event) => {
+      let interimText = '';
+      // Only process results from this session's start index
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          // Append to final ONLY — never re-process old results
+          finalTranscript += transcript + ' ';
+          currentTranscript = finalTranscript.trim();
+        } else {
+          interimText = transcript;
+        }
+      }
+      // Display = already confirmed words + current interim
+      transcriptEl.textContent = finalTranscript + interimText;
+      const words = (finalTranscript + interimText).trim().split(/\s+/).filter(w => w).length;
+      statusEl.textContent = 'Recording... ' + words + ' word' + (words !== 1 ? 's' : '') + ' — tap STOP when done';
+    };
+
+    r.onend = () => {
+      // Auto-restart ONLY if user hasn't stopped
+      if (!stopped) {
+        restartTimer = setTimeout(() => {
+          if (!stopped) {
+            recognition = buildRecognition();
+            try { recognition.start(); } catch(e) {}
+          }
+        }, 150);
+      }
+    };
+
+    r.onerror = (e) => {
+      if (e.error === 'not-allowed') {
+        stopped = true;
+        stopRecording();
+        statusEl.textContent = 'Microphone blocked. Allow in browser settings.';
+      } else if (e.error === 'no-speech' || e.error === 'aborted') {
+        // Expected — will restart via onend
+      } else {
+        console.log('Speech error:', e.error);
+      }
+    };
+
+    return r;
   }
 
-  let recognition = createRecognition();
-
-  function startListening() {
-    try {
-      recognition = createRecognition();
-
-      recognition.onstart = () => {
-        recognitionActive = true;
-        statusEl.textContent = 'Listening... speak freely, tap STOP when done';
-        transcriptEl.style.color = 'var(--mt)';
-      };
-
-      recognition.onresult = (event) => {
-        let interim = '';
-        let newFinal = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const text = event.results[i][0].transcript;
-          if (event.results[i].isFinal) {
-            newFinal += text + ' ';
-          } else {
-            interim += text;
-          }
-        }
-        if (newFinal) {
-          fullTranscript += newFinal;
-          currentTranscript = fullTranscript.trim();
-        }
-        // Show full transcript + current interim
-        transcriptEl.textContent = fullTranscript + interim;
-        transcriptEl.style.color = 'var(--tx)';
-        // Update status with word count
-        const words = (fullTranscript + interim).trim().split(/\s+/).filter(Boolean).length;
-        statusEl.textContent = `Recording... ${words} word${words !== 1 ? 's' : ''} — tap STOP when done`;
-      };
-
-      recognition.onend = () => {
-        recognitionActive = false;
-        // If still in recording mode, restart to keep going
-        if (isRecording) {
-          restartTimer = setTimeout(() => {
-            if (isRecording) {
-              startListening();
-            }
-          }, 100);
-        }
-      };
-
-      recognition.onerror = (e) => {
-        recognitionActive = false;
-        if (e.error === 'not-allowed') {
-          isRecording = false;
-          btn.classList.remove('recording');
-          btn.textContent = 'MIC';
-          btn.onclick = () => toggleVoice();
-          statusEl.textContent = 'Microphone blocked. Allow in browser settings.';
-        } else if (e.error === 'no-speech') {
-          // No speech detected — restart if still recording
-          if (isRecording) {
-            restartTimer = setTimeout(() => {
-              if (isRecording) startListening();
-            }, 200);
-          }
-        } else if (e.error !== 'aborted') {
-          console.log('Speech error:', e.error);
-          if (isRecording) {
-            restartTimer = setTimeout(() => {
-              if (isRecording) startListening();
-            }, 300);
-          }
-        }
-      };
-
-      recognition.start();
-    } catch(e) {
-      console.error('Recognition start error:', e);
-    }
-  }
-
-  // Stop function that cleans up
-  function stopListening() {
+  function stopRecording() {
+    stopped = true;
     isRecording = false;
     if (restartTimer) clearTimeout(restartTimer);
     try { recognition.abort(); } catch(e) {}
     btn.classList.remove('recording');
     btn.textContent = 'MIC';
     btn.onclick = () => toggleVoice();
-    if (currentTranscript) {
+    if (currentTranscript && currentTranscript.trim()) {
       statusEl.textContent = 'Done! Review and send to AI.';
       showVoiceActions();
     } else {
@@ -2416,20 +2383,30 @@ function startSpeechRecognition() {
     }
   }
 
-  // Set up stop button
+  // Initialize UI
+  stopped = false;
   isRecording = true;
   btn.classList.add('recording');
   btn.textContent = 'STOP';
-  btn.onclick = () => stopListening();
-
-  // Show transcript area
+  btn.onclick = () => stopRecording();
   transcriptEl.style.display = 'block';
   transcriptEl.textContent = '';
   document.getElementById('voice-ai-response').style.display = 'none';
   document.getElementById('voice-send-btn').style.display = 'none';
   document.getElementById('voice-clear-btn').style.display = 'none';
+  statusEl.textContent = 'Listening... speak now';
 
-  startListening();
+  recognition = buildRecognition();
+  try {
+    recognition.start();
+  } catch(e) {
+    statusEl.textContent = 'Could not start microphone: ' + e.message;
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.textContent = 'MIC';
+    btn.onclick = () => toggleVoice();
+    return false;
+  }
   return true;
 }
 

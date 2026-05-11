@@ -2690,12 +2690,9 @@ async function clearInbox() {
         cleared++;
       } catch(e) { console.error('Clear post error:', e); }
     }
-    allPosts = [];
-    updateStats([]);
-    renderPosts([]);
-    updateBadge(0);
-    updateTasksBadge();
-    toast(`Inbox cleared — ${cleared} posts marked as posted`);
+    // Reload from Supabase so badge reflects true state
+    await loadInbox();
+    toast(`Inbox cleared — ${cleared} posts moved to history`);
   } catch(e) {
     toast('Failed to clear inbox: ' + e.message);
   }

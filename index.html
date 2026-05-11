@@ -3262,7 +3262,7 @@ function renderSchedules() {
       <div class="sched-title ${s.completed ? 'completed' : ''}">${esc(s.title)}</div>
       <div class="sched-date ${dateClass}">${dateStr}${timeStr}${recurrenceLabel}${dateStatus}</div>
       ${s.description ? `<div class="sched-desc">${esc(s.description)}</div>` : ''}
-      ${s.ai_suggestions ? '<div class="sched-ai-box"><div class="sched-ai-label">AI Suggestions</div><ol style="padding-left:18px;margin:6px 0 0 0">' + esc(s.ai_suggestions).split('\n').map(function(l){return l.trim().replace(/^\d+\.\s*/,'').replace(/^[-*]\s*/,'');}).filter(function(l){return l.length>3;}).map(function(l){return '<li style="margin-bottom:8px;color:var(--tx);line-height:1.6">'+l+'</li>';}).join('') + '</ol></div>' : ''}
+      ${s.ai_suggestions ? '<div class="sched-ai-box"><div class="sched-ai-label">AI Suggestions</div><ol style="padding-left:18px;margin:6px 0 0 0">' + (function(raw){var text = raw;text = text.replace(/^ai_suggestions:\s*/i,'');var parts = text.split(/\n|(?=\s*\(\d+\))|(?<=;)\s*(?=\(\d+\))/);return parts.map(function(l){return l.trim().replace(/^\(\d+\)\s*/,'').replace(/^\d+[.):]\s*/,'').replace(/^[-*]\s*/,'');}).filter(function(l){return l.length>5;}).map(function(l){return '<li style="margin-bottom:10px;color:var(--tx);line-height:1.6">'+l+'</li>';}).join('');})(esc(s.ai_suggestions)) + '</ol></div>' : ''}
       <div class="sched-actions">
         <button class="btn bg bs" onclick="openSchedModal('${s.id}')">Edit</button>
         <button class="btn bg bs" onclick="refreshAISuggestion('${s.id}')">Refresh AI Tips</button>
@@ -3363,7 +3363,11 @@ Date: ${dateStr || 'not set yet'}
 
 Based on everything you know about them, give 3-5 specific, personalized suggestions for this event.
 Examples: gift ideas based on the person's interests, how to prepare, what to do on the day, what to avoid, etc.
-Be warm, specific, and practical. Keep it under 150 words. No bullet symbols, just numbered suggestions.`;
+Be warm, specific, and practical. Keep it under 200 words. Format as a numbered list with each suggestion on its OWN LINE like:
+1. First suggestion here
+2. Second suggestion here
+3. Third suggestion here
+Never put multiple suggestions on one line.`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -3487,7 +3491,10 @@ Personal reminder: "${s.title}" (${s.category}) on ${dateStr}.
 ${s.description ? 'Notes: ' + s.description : ''}
 
 Give 3-5 fresh, specific, personalized suggestions for this event based on everything you know about them.
-Be practical and warm. Under 150 words. Numbered list.`;
+Be practical and warm. Under 200 words. Each suggestion on its OWN separate line:
+1. First suggestion
+2. Second suggestion
+Never put multiple on one line.`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -3561,7 +3568,7 @@ Return ONLY a JSON array, no markdown, no explanation:
     "date": "YYYY-MM-DD",
     "recurrence": "once|daily|weekly|monthly|yearly",
     "description": "Brief context",
-    "ai_suggestions": "2-3 specific personalized suggestions for this event"
+    "ai_suggestions": "Each suggestion on its own line starting with 1. 2. 3. Never combine into one paragraph"
   }
 ]
 

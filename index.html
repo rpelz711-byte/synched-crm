@@ -2160,9 +2160,14 @@ async function saveBrainEntry() {
       });
     }
 
+    const isNew = !editingBrainId;
     closeBrainModal();
     await loadAIBrain();
-    toast(editingBrainId ? 'Context updated!' : 'Context saved! AI now knows more about you.');
+    toast(isNew ? 'Context saved! AI is analyzing...' : 'Context updated!');
+    // Trigger AI analysis after save
+    if (isNew) {
+      await analyzeSavedContext(title, category, content_text);
+    }
   } catch(e) {
     toast('Failed to save: ' + e.message);
   } finally {
@@ -2482,6 +2487,7 @@ async function sendVoiceToAI() {
 
   try {
     const aiContext = await getAIContext();
+    const membersContext = await getMembersContext();
     const today = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
 
     const prompt = `You are a personal AI assistant for ${currentUser?.name || 'the admin'}.
@@ -2489,17 +2495,27 @@ Today is ${today}.
 
 ${aiContext}
 
+${membersContext}
+
 The user just gave you this voice command:
 "${transcript}"
 
-Based on their personal context above and this command, respond helpfully. You can:
-1. Add a new context entry to their AI Brain (say "SAVE_CONTEXT: [category] | [title] | [content]")
-2. Suggest creating a task (say "CREATE_TASK: [title] | [description] | [category] | [due_date YYYY-MM-DD or null]")
-3. Provide advice, reminders, or information based on what you know about them
-4. Acknowledge preferences or rules they want you to remember
+Based on their personal context and team members above, respond helpfully. You can:
+1. Save context to AI Brain: SAVE_CONTEXT: [category] | [title] | [content]
+   Categories: personal, work, family, love_life, health, goals, preferences, rules, schedule, finances, other
 
-Always respond conversationally first, then include any SAVE_CONTEXT or CREATE_TASK actions on a new line if applicable.
-Keep your response concise and actionable.`;
+2. Create and assign a task: CREATE_TASK: [title] | [description] | [category] | [due_date YYYY-MM-DD or null] | [assigned_member_id or null]
+   - To assign to a member, use their exact ID from the team members list above
+   - If admin says "assign to Robert" or "give to Nate", match by name and use their ID
+   - If assigning to multiple people, create multiple CREATE_TASK lines
+
+3. Give advice, reminders, or answer questions based on what you know
+
+Rules:
+- Always respond conversationally first (1-3 sentences)
+- Then add any SAVE_CONTEXT or CREATE_TASK lines on new lines at the end
+- When assigning tasks, confirm who you are assigning to by name
+- Be specific and actionable`;
 
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -2547,25 +2563,54 @@ Keep your response concise and actionable.`;
       toast('AI saved new context from your voice command!');
     }
 
-    // Auto-execute CREATE_TASK if present
-    const taskMatch = aiReply.match(/CREATE_TASK:([^|]+)[|]([^|]+)[|]([^|]+)[|]([^\n]+)/);
+    // Auto-execute all CREATE_TASK lines
+    const taskMatches = [];
+    const taskRegex = /CREATE_TASK:([^|\n]+)[|]([^|\n]+)[|]([^|\n]+)[|]([^|\n]+)(?:[|]([^\n]*))?/g;
+    let tMatch;
+    while ((tMatch = taskRegex.exec(aiReply)) !== null) { taskMatches.push(tMatch); }
 
-    if (taskMatch) {
-      const [, title, description, category, due_date] = taskMatch.map(s => s.trim());
-      await fetch(`${SB_URL}/rest/v1/tasks`, {
-        method: 'POST',
-        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title, description,
-          category: category.toLowerCase().replace(/\s/g, '_'),
-          due_date: due_date !== 'null' ? due_date : null,
-          created_by: currentUser.id,
-          status: 'todo',
-          priority: 'medium'
-        })
-      });
-      toast('AI created a task from your voice command!');
+    if (taskMatches.length > 0) {
+      let tasksCreated = 0;
+      for (const match of taskMatches) {
+        const rawTitle = (match[1]||'').trim();
+        const rawDesc = (match[2]||'').trim();
+        const rawCat = (match[3]||'').trim().toLowerCase().replace(/\s+/g,'_');
+        const rawDate = (match[4]||'').trim();
+        const rawMember = (match[5]||'').trim();
+
+        const validCats = ['work','travel','wedding','bucket_list','health','creative','personal','finance','relationship','other'];
+        const finalCat = validCats.includes(rawCat) ? rawCat : 'work';
+        const dateMatch = rawDate.match(/\d{4}-\d{2}-\d{2}/);
+        const finalDate = dateMatch ? dateMatch[0] : null;
+        const finalMember = (rawMember && rawMember !== 'null' && rawMember.length > 20) ? rawMember : null;
+
+        const taskRes = await fetch(`${SB_URL}/rest/v1/tasks`, {
+          method: 'POST',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
+          body: JSON.stringify({ title: rawTitle, description: rawDesc, category: finalCat, due_date: finalDate, created_by: currentUser.id, status: 'todo', priority: 'medium' })
+        });
+
+        if (taskRes.ok) {
+          const newTask = await taskRes.json();
+          const taskId = newTask[0]?.id;
+          if (taskId && finalMember) {
+            await fetch(`${SB_URL}/rest/v1/task_assignments`, {
+              method: 'POST',
+              headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ task_id: taskId, user_id: finalMember })
+            });
+            await fetch(`${SB_URL}/rest/v1/task_notifications`, {
+              method: 'POST',
+              headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+              body: JSON.stringify({ user_id: finalMember, task_id: taskId, type: 'assigned', message: 'You have been assigned to: "' + rawTitle + '"' + (finalDate ? ' — due ' + finalDate : '') })
+            });
+          }
+          tasksCreated++;
+        }
+      }
+      toast('AI created ' + tasksCreated + ' task' + (tasksCreated !== 1 ? 's' : '') + ' from your command!');
     }
+    const taskMatch = taskMatches.length > 0 ? taskMatches[0] : null;
 
     // Log voice command
     await fetch(`${SB_URL}/rest/v1/voice_commands`, {
@@ -2724,6 +2769,97 @@ async function clearVoiceLog() {
     document.getElementById('voice-log-list').innerHTML = '<div style="font-size:13px;color:var(--mt);padding:12px 0">No voice commands yet.</div>';
     toast('Voice log cleared');
   } catch(e) { toast('Failed to clear log: ' + e.message); }
+}
+
+// ── AI analyzes newly saved context ───────────────────────────
+async function analyzeSavedContext(title, category, contextContent) {
+  const apiKey = cfg.gemini;
+  if (!apiKey) return;
+
+  // Show analysis response area on the AI Brain page
+  let responseDiv = document.getElementById('brain-ai-analysis');
+  if (!responseDiv) {
+    responseDiv = document.createElement('div');
+    responseDiv.id = 'brain-ai-analysis';
+    responseDiv.style.cssText = 'background:rgba(124,111,247,.08);border:1px solid rgba(124,111,247,.25);border-radius:var(--rs);padding:16px;margin-bottom:16px;font-size:13px;line-height:1.7';
+    const content_area = document.querySelector('#page-aibrain .content');
+    if (content_area) {
+      const filterRow = document.getElementById('brain-filter-row');
+      content_area.insertBefore(responseDiv, filterRow);
+    }
+  }
+
+  responseDiv.innerHTML = '<strong style="color:var(--ac2)">AI is analyzing your new context...</strong>';
+  responseDiv.style.display = 'block';
+
+  try {
+    // Load all members for context
+    const members = await sbGet('crm_users?select=id,name,role&order=name.asc');
+    const memberList = (members || []).map(m => '- ' + m.name + ' (' + m.role + ')').join('\n');
+
+
+    const prompt = `You are a personal AI assistant. The admin just added new context about themselves.
+
+New context added:
+Category: ${category}
+Title: ${title}
+Content: ${contextContent}
+
+Team members you know about:
+${memberList}
+
+Please respond with:
+1. A brief confirmation showing you understood the context (2-3 sentences)
+2. One specific insight or suggestion based on this information
+3. If relevant, mention if any team members should be aware of or involved in this
+
+Keep your response concise, warm and helpful. Address the admin directly.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'API error');
+    const reply = data.content?.[0]?.text || '';
+
+    responseDiv.innerHTML = '<strong style="color:var(--ac2)">AI understood:</strong><br><br>' + esc(reply).split('\n').join('<br>');
+
+
+    // Auto-hide after 30 seconds
+    setTimeout(() => {
+      if (responseDiv) responseDiv.style.display = 'none';
+    }, 30000);
+
+  } catch(e) {
+    responseDiv.innerHTML = '<span style="color:var(--mt)">Could not get AI response: ' + esc(e.message) + '</span>';
+    console.error('AI analysis error:', e);
+  }
+}
+
+// ── Load members for AI context ──────────────────────────────
+async function getMembersContext() {
+  try {
+    const members = await sbGet('crm_users?select=id,name,role,email&order=name.asc');
+    if (!members || !members.length) return '';
+    let ctx = '=== TEAM MEMBERS ===\n';
+    for (const m of members) {
+      ctx += '- ' + m.name + ' | Role: ' + m.role + ' | Email: ' + m.email + ' | ID: ' + m.id + '\n';
+    }
+    ctx += '=== END TEAM MEMBERS ===\n';
+    return ctx;
+  } catch(e) { return ''; }
 }
 </script>
 </body>

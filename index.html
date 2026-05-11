@@ -326,8 +326,8 @@
     .sched-date.today { color:var(--warn); font-weight:600; }
     .sched-date.overdue { color:#f87171; font-weight:600; }
     .sched-date.soon { color:var(--ok); font-weight:600; }
-    .sched-desc { font-size:13px; color:var(--mt); line-height:1.6; margin-bottom:10px; }
-    .sched-ai-box { background:rgba(124,111,247,.06); border:1px solid rgba(124,111,247,.15); border-radius:var(--rs); padding:10px 12px; margin-top:8px; font-size:12px; color:var(--tx); line-height:1.7; }
+    .sched-desc { font-size:13px; color:var(--tx); line-height:1.6; margin-bottom:10px; opacity:.85; }
+    .sched-ai-box { background:rgba(124,111,247,.08); border:1px solid rgba(124,111,247,.2); border-radius:var(--rs); padding:12px 14px; margin-top:8px; font-size:13px; color:var(--tx); line-height:1.8; }
     .sched-ai-label { font-size:10px; font-weight:700; color:var(--ac2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
     .sched-actions { display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; align-items:center; }
     .sched-cat-badge { padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600; text-transform:uppercase; background:rgba(124,111,247,.15); color:var(--ac2); }
@@ -3262,7 +3262,7 @@ function renderSchedules() {
       <div class="sched-title ${s.completed ? 'completed' : ''}">${esc(s.title)}</div>
       <div class="sched-date ${dateClass}">${dateStr}${timeStr}${recurrenceLabel}${dateStatus}</div>
       ${s.description ? `<div class="sched-desc">${esc(s.description)}</div>` : ''}
-      ${s.ai_suggestions ? `<div class="sched-ai-box"><div class="sched-ai-label">AI Suggestions</div>${esc(s.ai_suggestions)}</div>` : ''}
+      ${s.ai_suggestions ? '<div class="sched-ai-box"><div class="sched-ai-label">AI Suggestions</div><ol style="padding-left:18px;margin:6px 0 0 0">' + esc(s.ai_suggestions).split('\n').map(function(l){return l.trim().replace(/^\d+\.\s*/,'').replace(/^[-*]\s*/,'');}).filter(function(l){return l.length>3;}).map(function(l){return '<li style="margin-bottom:8px;color:var(--tx);line-height:1.6">'+l+'</li>';}).join('') + '</ol></div>' : ''}
       <div class="sched-actions">
         <button class="btn bg bs" onclick="openSchedModal('${s.id}')">Edit</button>
         <button class="btn bg bs" onclick="refreshAISuggestion('${s.id}')">Refresh AI Tips</button>

@@ -328,7 +328,11 @@
     <div id="page-aibrain" class="page">
       <div class="topbar">
         <div><h1>AI Brain</h1><p>Everything AI knows about you — the more you add, the smarter it gets</p></div>
-        <button class="btn bp bs" onclick="openBrainModal()">+ Add Context</button>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn bp bs" onclick="openBrainModal()">+ Add Context</button>
+          <button class="btn br bs" onclick="clearBrainCategory()">Clear Category</button>
+          <button class="btn br bs" onclick="clearAllBrain()">Clear All</button>
+        </div>
       </div>
       <div class="content">
 
@@ -357,7 +361,10 @@
         <div class="card" style="margin-bottom:20px">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
             <span>Recent Voice Commands</span>
-            <button class="btn bg bs" onclick="loadVoiceLog()">Refresh</button>
+            <div style="display:flex;gap:6px">
+              <button class="btn bg bs" onclick="loadVoiceLog()">Refresh</button>
+              <button class="btn br bs" onclick="clearVoiceLog()">Clear Log</button>
+            </div>
           </div>
           <div id="voice-log-list"><div style="font-size:13px;color:var(--mt);padding:12px 0">No voice commands yet.</div></div>
         </div>
@@ -2662,6 +2669,84 @@ async function clearInbox() {
   } catch(e) {
     toast('Failed to clear inbox: ' + e.message);
   }
+}
+
+// ── Quick delete single brain entry ───────────────────────────
+async function quickDeleteBrain(entryId) {
+  if (!confirm('Delete this context entry? The AI will no longer have this information.')) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/ai_brain?id=eq.${entryId}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    allBrainEntries = allBrainEntries.filter(e => e.id !== entryId);
+    renderBrainEntries();
+    toast('Entry deleted');
+  } catch(e) { toast('Failed to delete: ' + e.message); }
+}
+
+// ── Clear all entries in current category ─────────────────────
+async function clearBrainCategory() {
+  const filter = currentBrainFilter;
+  const label = filter === 'all' ? 'ALL categories' : filter.replace('_', ' ');
+  if (!confirm(`Delete all AI Brain entries in "${label}"? This cannot be undone.`)) return;
+
+  try {
+    const toDelete = filter === 'all'
+      ? allBrainEntries
+      : allBrainEntries.filter(e => e.category === filter);
+
+    if (!toDelete.length) { toast('No entries to delete in this category'); return; }
+
+    let deleted = 0;
+    for (const entry of toDelete) {
+      try {
+        await fetch(`${SB_URL}/rest/v1/ai_brain?id=eq.${entry.id}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+        deleted++;
+      } catch(e) { console.error('Delete error:', e); }
+    }
+
+    await loadAIBrain();
+    toast(`Deleted ${deleted} entr${deleted !== 1 ? 'ies' : 'y'} from ${label}`);
+  } catch(e) { toast('Failed to clear: ' + e.message); }
+}
+
+// ── Clear ALL AI Brain entries ─────────────────────────────────
+async function clearAllBrain() {
+  if (!allBrainEntries.length) { toast('AI Brain is already empty'); return; }
+  if (!confirm(`Delete ALL ${allBrainEntries.length} AI Brain entries? The AI will forget everything. This cannot be undone.`)) return;
+
+  try {
+    let deleted = 0;
+    for (const entry of allBrainEntries) {
+      try {
+        await fetch(`${SB_URL}/rest/v1/ai_brain?id=eq.${entry.id}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+        });
+        deleted++;
+      } catch(e) { console.error('Delete error:', e); }
+    }
+    allBrainEntries = [];
+    renderBrainEntries();
+    toast(`All ${deleted} entries deleted — AI Brain cleared`);
+  } catch(e) { toast('Failed to clear: ' + e.message); }
+}
+
+// ── Clear voice command log ────────────────────────────────────
+async function clearVoiceLog() {
+  if (!confirm('Clear all voice command history?')) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/voice_commands?user_id=eq.${currentUser.id}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    document.getElementById('voice-log-list').innerHTML = '<div style="font-size:13px;color:var(--mt);padding:12px 0">No voice commands yet.</div>';
+    toast('Voice log cleared');
+  } catch(e) { toast('Failed to clear log: ' + e.message); }
 }
 </script>
 </body>

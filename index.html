@@ -898,7 +898,6 @@ async function analyzeLink(){
   const apiKey=cfg.gemini;
   if(!apiKey){toast('Add your Claude API key in Settings first');return;}
   const brand=gv('analyze-brand')||cfg.brand||'the brand';
-  const personalCtx = currentUser?.role==='admin' ? await getAIContext() : '';
   const tone=gv('analyze-tone');
   const mode=gv('analyze-mode');
   const brandDesc=cfg.desc;
@@ -936,8 +935,7 @@ URL: ${url}`;
     summarize:'Summarize the core message and add the brand\'s unique perspective.',
     auto:'Choose the best approach based on the content type and quality.'
   };
-  const prompt=`You are a social media strategist for ${brand}.
-${personalCtx ? personalCtx + '\n' : ''}${brandDesc?'\nBrand context: '+brandDesc:''}
+  const prompt=`You are a social media strategist for ${brand}.${brandDesc?'\nBrand context: '+brandDesc:''}
 
 ${sourceContext}
 Tone: ${tone}
@@ -2355,12 +2353,12 @@ Keep your response concise and actionable.`;
     // Show AI response
     const responseEl = document.getElementById('voice-ai-response');
     responseEl.style.display = 'block';
-    responseEl.innerHTML = '<strong style="color:var(--ac2)">AI Response:</strong><br>' + esc(aiReply).replace(/
-/g, '<br>');
+    responseEl.innerHTML = '<strong>AI Response:</strong><br>' + esc(aiReply);
+
 
     // Auto-execute SAVE_CONTEXT if present
-    const saveMatch = aiReply.match(/SAVE_CONTEXT:\s*([^|]+)\|([^|]+)\|([^
-]+)/);
+    const saveMatch = aiReply.match(/SAVE_CONTEXT:([^|]+)\|([^|]+)\|([^\n]+)/);
+
     if (saveMatch) {
       const [, category, title, content_text] = saveMatch.map(s => s.trim());
       await fetch(`${SB_URL}/rest/v1/ai_brain`, {
@@ -2379,8 +2377,8 @@ Keep your response concise and actionable.`;
     }
 
     // Auto-execute CREATE_TASK if present
-    const taskMatch = aiReply.match(/CREATE_TASK:\s*([^|]+)\|([^|]+)\|([^|]+)\|([^
-]+)/);
+    const taskMatch = aiReply.match(/CREATE_TASK:([^|]+)[|]([^|]+)[|]([^|]+)[|]([^\n]+)/);
+
     if (taskMatch) {
       const [, title, description, category, due_date] = taskMatch.map(s => s.trim());
       await fetch(`${SB_URL}/rest/v1/tasks`, {
@@ -2435,8 +2433,8 @@ async function loadVoiceLog() {
     container.innerHTML = '<div class="voice-log">' + logs.map(log => `
       <div class="voice-log-item">
         <div class="voice-log-transcript">"${esc(log.transcript)}"</div>
-        <div class="voice-log-response">${esc(log.ai_response || '').replace(/SAVE_CONTEXT:[^
-]+/g,'').replace(/CREATE_TASK:[^
+        <div class="voice-log-response">${esc((log.ai_response || '').replace('SAVE_CONTEXT','').replace('CREATE_TASK','').trim())}</div>
+
 ]+/g,'').trim()}</div>
         <div class="voice-log-time">${formatDate(log.created_at)} · ${log.action_taken || 'conversation'}</div>
       </div>`).join('') + '</div>';

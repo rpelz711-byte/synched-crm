@@ -1207,6 +1207,7 @@ async function loadTasks() {
   try {
     const tasks = await sbGet('tasks?select=*,task_assignments(user_id,responsibility,completed,crm_users(id,name,avatar_url))&order=due_date.asc.nullslast,created_at.desc');
     allTasks = tasks || [];
+    // Filter out completed tasks from badge count
     renderTasks();
     updateTasksBadge();
     await loadTaskNotifications();
@@ -1291,8 +1292,7 @@ function renderTaskCard(task, isAdmin) {
       ${isAdmin && task.status === 'done' ? `
         <button class="btn bp bs" style="background:var(--ok);border-color:var(--ok)" onclick="verifyTask('${task.id}')"> Verify Complete</button>` : ''}
       ${isAdmin && task.status !== 'done' && task.status !== 'verified' ? `
-        <button class="btn bg bs" onclick="openTaskModal('${task.id}')"> Edit</button><button class="btn bg bs" onclick="updateTaskStatus('${task.id}','${task.status}')">${task.status === 'todo' ? 'Start' : task.status === 'in_progress' ? ' Mark Done' : '↺ Reopen'}
-        </button>` : ''}
+        <button class="btn bg bs" onclick="openTaskModal('${task.id}')"> Edit</button>${task.status === 'in_progress' ? '<button class="btn bg bs" onclick="updateTaskStatus(\'' + task.id + '\',\'' + task.status + '\')">Mark Done</button>' : ''}` : ''}
       ${isAdmin && task.status === 'verified' ? `
         <span style="font-size:12px;color:var(--ok);font-weight:600"> Verified Complete</span><button class="btn bg bs" onclick="openTaskModal('${task.id}')"> Edit</button>` : ''}
       ${isAdmin && (task.status === 'todo' || task.status === 'in_progress') ? `
@@ -1326,9 +1326,13 @@ function setStatusFilter(filter, btn) {
 //  Task badge 
 function updateTasksBadge() {
   const isAdmin = currentUser?.role === 'admin';
+  // Only count active tasks (todo or in_progress) — not done/verified/cancelled
   let myTasks = isAdmin
-    ? allTasks.filter(t => t.status !== 'done' && t.status !== 'cancelled')
-    : allTasks.filter(t => t.task_assignments?.some(a => a.user_id === currentUser?.id && !a.completed) && t.status !== 'done');
+    ? allTasks.filter(t => t.status === 'todo' || t.status === 'in_progress')
+    : allTasks.filter(t =>
+        t.task_assignments?.some(a => a.user_id === currentUser?.id && !a.completed) &&
+        (t.status === 'todo' || t.status === 'in_progress')
+      );
 
   const count = myTasks.length;
   const badge = document.getElementById('tasks-badge');
@@ -2690,6 +2694,7 @@ async function clearInbox() {
     updateStats([]);
     renderPosts([]);
     updateBadge(0);
+    updateTasksBadge();
     toast(`Inbox cleared — ${cleared} posts marked as posted`);
   } catch(e) {
     toast('Failed to clear inbox: ' + e.message);

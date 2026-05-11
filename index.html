@@ -274,12 +274,51 @@
       .setting-label { width: 100%; }
       .content { padding: 18px; }
     }
+
+    /* ── AI Brain ── */
+    .brain-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:16px; }
+    .brain-card { background:var(--sur2); border:1px solid var(--bdr); border-radius:var(--r); padding:16px; }
+    .brain-card-title { font-size:12px; font-weight:600; color:var(--ac2); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+    .brain-card-content { font-size:13px; line-height:1.7; color:var(--tx); max-height:120px; overflow:hidden; position:relative; }
+    .brain-card-content.expanded { max-height:none; }
+    .brain-card-content:not(.expanded)::after { content:''; position:absolute; bottom:0; left:0; right:0; height:30px; background:linear-gradient(transparent, var(--sur2)); pointer-events:none; }
+    .brain-card-meta { font-size:11px; color:var(--mt); margin-top:8px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .brain-cat-badge { padding:2px 8px; border-radius:999px; font-size:10px; font-weight:600; text-transform:uppercase; background:rgba(124,111,247,.15); color:var(--ac2); }
+
+    /* ── Voice command ── */
+    .voice-btn {
+      width:72px; height:72px; border-radius:50%;
+      background:var(--ac); border:none; cursor:pointer;
+      display:flex; align-items:center; justify-content:center;
+      font-size:28px; font-weight:700; color:#fff;
+      transition:all .2s; box-shadow:0 4px 20px rgba(124,111,247,.4);
+      font-family:inherit;
+    }
+    .voice-btn:hover { transform:scale(1.06); box-shadow:0 6px 28px rgba(124,111,247,.6); }
+    .voice-btn.recording {
+      background:#ef4444;
+      animation:pulse-rec 1.2s ease-in-out infinite;
+      box-shadow:0 4px 20px rgba(239,68,68,.5);
+    }
+    @keyframes pulse-rec {
+      0%,100% { transform:scale(1); box-shadow:0 4px 20px rgba(239,68,68,.5); }
+      50% { transform:scale(1.08); box-shadow:0 6px 32px rgba(239,68,68,.8); }
+    }
+    .voice-transcript { background:var(--sur2); border:1px solid var(--bdr2); border-radius:var(--rs); padding:14px; font-size:13px; color:var(--tx); line-height:1.7; min-height:60px; margin-top:14px; }
+    .voice-log { display:flex; flex-direction:column; gap:10px; margin-top:14px; max-height:300px; overflow-y:auto; }
+    .voice-log-item { background:var(--sur2); border:1px solid var(--bdr); border-radius:var(--rs); padding:12px 14px; }
+    .voice-log-transcript { font-size:13px; color:var(--ac2); font-style:italic; margin-bottom:6px; }
+    .voice-log-response { font-size:13px; color:var(--tx); line-height:1.6; }
+    .voice-log-time { font-size:11px; color:var(--mt); margin-top:6px; }
+
+    @media (max-width:640px) { .brain-grid { grid-template-columns:1fr; } }
+
   </style>
 </head>
 <body>
 <!-- AUTH SCREEN -->
 <div class="auth-screen active" id="auth-screen"><div class="auth-box"><div class="auth-logo"><img src="./SynchedStudios.png" style="width:80px;height:80px;object-fit:contain;display:block;margin:0 auto 12px auto;" onerror="this.style.display='none'" /><h1>Synched Studios</h1><p>Content CRM — Sign in to continue</p></div><div class="auth-tabs"><button class="auth-tab active" onclick="switchAuthTab('login',this)">Sign In</button><button class="auth-tab" onclick="switchAuthTab('register',this)">Create Account</button></div><!-- LOGIN --><div class="auth-form active" id="auth-login"><div class="auth-error" id="login-error"></div><div class="fr"><label>Email</label><input type="email" id="login-email" placeholder="you@email.com" /></div><div class="fr"><label>Password</label><input type="password" id="login-password" placeholder="Your password" /></div><button class="btn bp" style="width:100%;justify-content:center;margin-top:4px" id="login-btn" onclick="doLogin()">Sign In</button></div><!-- REGISTER --><div class="auth-form" id="auth-register"><div class="auth-error" id="register-error"></div><div class="auth-avatar-upload"><div class="auth-avatar-preview" id="reg-avatar-preview" onclick="document.getElementById('reg-avatar-input').click()"></div><label class="auth-avatar-label" for="reg-avatar-input">Upload profile photo (optional)</label><input type="file" id="reg-avatar-input" accept="image/*" style="display:none" onchange="previewAvatar(this)" /></div><div class="fg"><div class="fr"><label>Full name</label><input type="text" id="reg-name" placeholder="Your name" /></div><div class="fr"><label>Role</label><select id="reg-role"><option value="admin">Admin</option><option value="member">Member</option></select></div></div><div class="fr"><label>Email</label><input type="email" id="reg-email" placeholder="you@email.com" /></div><div class="fg"><div class="fr"><label>Password</label><input type="password" id="reg-password" placeholder="Create password" /></div><div class="fr"><label>Confirm password</label><input type="password" id="reg-confirm" placeholder="Repeat password" /></div></div><div class="fr"><label>Bio (optional)</label><textarea id="reg-bio" placeholder="Tell us about yourself..." style="min-height:60px"></textarea></div><button class="btn bp" style="width:100%;justify-content:center;margin-top:4px" id="register-btn" onclick="doRegister()">Create Account</button></div></div>
-</div><div class="app"><aside class="sidebar"><div class="logo"><img src="./SynchedStudios.png" alt="Synched Studios" style="width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 10px auto;" onerror="this.style.display='none'" />Synched Studios <small>Content CRM</small></div><button class="nav active" onclick="showPage('inbox',this)">Inbox <span class="badge" id="inbox-badge"></span></button><button class="nav" onclick="showPage('tasks',this)">Tasks <span class="badge" id="tasks-badge"></span></button><button class="nav" onclick="showPage('history',this)">History</button><button class="nav" onclick="showPage('analyze',this)">Analyze a Link</button><button class="nav" onclick="showPage('watchlist',this)">Watch List</button><button class="nav" onclick="showPage('settings',this)">Settings</button><div class="profile-section"><button class="profile-btn" onclick="showPage('profile',this)"><div class="profile-avatar" id="sidebar-avatar">?</div><div><div class="profile-name" id="sidebar-name">Loading...</div><div class="profile-role" id="sidebar-role"></div></div></button><button class="logout-btn" onclick="doLogout()">Sign out</button></div></aside><main class="main"><!-- Mobile profile header --><div class="mobile-profile" id="mobile-profile-bar"><div class="profile-avatar" id="mobile-avatar" style="width:32px;height:32px;font-size:12px">?</div><div style="flex:1"><div style="font-size:13px;font-weight:500" id="mobile-name">Loading...</div></div><button class="btn br bs" onclick="doLogout()">Sign out</button></div><!-- INBOX --><div id="page-inbox" class="page active"><div class="topbar"><div><h1>Inbox</h1><p>AI-generated content ready to copy and post</p></div><button class="btn bg bs" onclick="loadInbox()">Refresh</button></div><div class="content"><div class="info-box"><strong>No image API needed!</strong> Every post includes a ready-to-use image prompt.
+</div><div class="app"><aside class="sidebar"><div class="logo"><img src="./SynchedStudios.png" alt="Synched Studios" style="width:52px;height:52px;object-fit:contain;display:block;margin:0 auto 10px auto;" onerror="this.style.display='none'" />Synched Studios <small>Content CRM</small></div><button class="nav active" onclick="showPage('inbox',this)">Inbox <span class="badge" id="inbox-badge"></span></button><button class="nav" onclick="showPage('aibrain',this)" id="nav-aibrain" style="display:none">AI Brain</button><button class="nav" onclick="showPage('tasks',this)">Tasks <span class="badge" id="tasks-badge"></span></button><button class="nav" onclick="showPage('history',this)">History</button><button class="nav" onclick="showPage('analyze',this)">Analyze a Link</button><button class="nav" onclick="showPage('watchlist',this)">Watch List</button><button class="nav" onclick="showPage('settings',this)">Settings</button><div class="profile-section"><button class="profile-btn" onclick="showPage('profile',this)"><div class="profile-avatar" id="sidebar-avatar">?</div><div><div class="profile-name" id="sidebar-name">Loading...</div><div class="profile-role" id="sidebar-role"></div></div></button><button class="logout-btn" onclick="doLogout()">Sign out</button></div></aside><main class="main"><!-- Mobile profile header --><div class="mobile-profile" id="mobile-profile-bar"><div class="profile-avatar" id="mobile-avatar" style="width:32px;height:32px;font-size:12px">?</div><div style="flex:1"><div style="font-size:13px;font-weight:500" id="mobile-name">Loading...</div></div><button class="btn br bs" onclick="doLogout()">Sign out</button></div><!-- INBOX --><div id="page-inbox" class="page active"><div class="topbar"><div><h1>Inbox</h1><p>AI-generated content ready to copy and post</p></div><button class="btn bg bs" onclick="loadInbox()">Refresh</button></div><div class="content"><div class="info-box"><strong>No image API needed!</strong> Every post includes a ready-to-use image prompt.
           Copy it and paste into <strong>Google ImageFX</strong>, <strong>Canva AI</strong>, <strong>Adobe Firefly</strong>, or <strong>Bing Image Creator</strong> — all free!
         </div><div class="stats"><div class="stat"><div class="stat-num" id="stat-new">0</div><div class="stat-label">New posts</div></div><div class="stat"><div class="stat-num" id="stat-reviewed">0</div><div class="stat-label">Reviewed</div></div><div class="stat"><div class="stat-num" id="stat-posted">0</div><div class="stat-label">Posted</div></div><div class="stat"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div></div><div class="filter-row"><button class="filter-btn active" onclick="setFilter('all',this)">All</button><button class="filter-btn" onclick="setFilter('new',this)">New</button><button class="filter-btn" onclick="setFilter('instagram',this)"> Instagram</button><button class="filter-btn" onclick="setFilter('tiktok',this)"> TikTok</button><button class="filter-btn" onclick="setFilter('facebook',this)"> Facebook</button></div><div class="post-list" id="post-list"><div class="empty"><div class="empty-icon"></div>No posts yet. Use "Analyze a Link" to get started!</div></div></div></div><!-- ANALYZE --><div id="page-analyze" class="page"><div class="topbar"><div><h1>Analyze a Link</h1><p>Paste any YouTube, Instagram, or Facebook URL to generate content</p></div></div><div class="content"><div class="info-box"><strong>How it works:</strong> Paste a URL → AI reads and analyzes the content → generates captions for Instagram, TikTok, and Facebook → gives you an image prompt to use in any free AI image tool. No image API needed!
         </div><div class="card"><div class="card-title">Content source</div><div class="fr"><label>URL — YouTube video, Instagram post, Facebook post, or any article</label><div class="input-row"><input id="analyze-url" type="url" placeholder="https://www.youtube.com/watch?v=..." /><button class="btn bp" id="analyze-btn" onclick="analyzeLink()">Generate</button></div></div><div class="fg"><div class="fr"><label>Brand name</label><input id="analyze-brand" type="text" placeholder="Synched Studios" /></div><div class="fr"><label>Tone</label><select id="analyze-tone"><option value="inspiring">Inspiring</option><option value="professional">Professional</option><option value="casual and fun">Casual & fun</option><option value="educational">Educational</option><option value="hype and energetic">Hype / Energetic</option><option value="storytelling">Storytelling</option></select></div></div><div class="fr"><label>What should the AI do with this content?</label><select id="analyze-mode"><option value="rewrite">Rewrite it in my brand voice</option><option value="extract">Extract key ideas and make original content</option><option value="summarize">Summarize and add my own spin</option><option value="auto">AI decides based on content</option></select></div></div><div id="analyze-results" style="display:none"><div class="card-title" style="margin-bottom:8px">Generated Content</div><div class="result-grid" id="result-grid"></div><div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn bp bs" onclick="saveAnalyzed()">Save to Inbox</button><button class="btn bg bs" onclick="analyzeLink()">Regenerate</button></div></div></div></div><!-- WATCH LIST --><div id="page-watchlist" class="page"><div class="topbar"><div><h1>Watch List</h1><p>Sources checked daily for new content</p></div></div><div class="content"><div class="card"><div class="card-title">Add a source</div><div class="fg"><div class="fr"><label>Name</label><input id="source-name" type="text" placeholder="e.g. Timbaland YouTube" /></div><div class="fr"><label>Platform</label><select id="source-platform"><option value="youtube">YouTube channel</option><option value="facebook">Facebook page</option></select></div></div><div class="fr"><label>URL</label><input id="source-url" type="url" placeholder="https://www.youtube.com/@channelname" /></div><button class="btn bp" onclick="addSource()">Add to Watch List</button></div><div class="banner"><strong>Instagram:</strong> Use "Analyze a Link" and paste Instagram post URLs manually — Instagram blocks automatic monitoring.<br><strong>Daily auto-check:</strong> Your Cloudflare Worker runs at 7am UTC (3pm Philippine time) and fills your Inbox automatically.
@@ -725,6 +764,7 @@ function showPage(name,btn){
     if(newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
   }
   if(name==='history') loadHistory();
+  if(name==='aibrain') loadAIBrain();
   if(name==='settings') updateKeyIndicators();
 }
 
@@ -742,6 +782,7 @@ function showPageMobile(name, btn){
     if(newBtn) newBtn.style.display = currentUser?.role === 'admin' ? 'inline-flex' : 'none';
   }
   if(name==='history') loadHistory();
+  if(name==='aibrain') loadAIBrain();
   if(name==='settings') updateKeyIndicators();
   document.querySelector('.main').scrollTo(0,0);
 }
@@ -857,6 +898,7 @@ async function analyzeLink(){
   const apiKey=cfg.gemini;
   if(!apiKey){toast('Add your Claude API key in Settings first');return;}
   const brand=gv('analyze-brand')||cfg.brand||'the brand';
+  const personalCtx = currentUser?.role==='admin' ? await getAIContext() : '';
   const tone=gv('analyze-tone');
   const mode=gv('analyze-mode');
   const brandDesc=cfg.desc;
@@ -894,7 +936,8 @@ URL: ${url}`;
     summarize:'Summarize the core message and add the brand\'s unique perspective.',
     auto:'Choose the best approach based on the content type and quality.'
   };
-  const prompt=`You are a social media strategist for ${brand}.${brandDesc?'\nBrand context: '+brandDesc:''}
+  const prompt=`You are a social media strategist for ${brand}.
+${personalCtx ? personalCtx + '\n' : ''}${brandDesc?'\nBrand context: '+brandDesc:''}
 
 ${sourceContext}
 Tone: ${tone}
@@ -1824,6 +1867,582 @@ async function reopenTask(taskId) {
     toast('Task reopened and moved back to Tasks');
   } catch(e) { toast('Failed to reopen: ' + e.message); }
 }
+
+// ══════════════════════════════════════════════════════════════
+// AI BRAIN + VOICE COMMANDS
+// ══════════════════════════════════════════════════════════════
+
+let allBrainEntries = [];
+let currentBrainFilter = 'all';
+let editingBrainId = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+let currentTranscript = '';
+
+// ── Show AI Brain nav for admin only ──────────────────────────
+function initAIBrain() {
+  if (currentUser?.role === 'admin') {
+    const navBtn = document.getElementById('nav-aibrain');
+    if (navBtn) navBtn.style.display = 'block';
+    const mobileBtn = document.getElementById('bnav-aibrain');
+    if (mobileBtn) mobileBtn.style.display = 'flex';
+  }
+}
+
+// ── Load AI Brain entries ──────────────────────────────────────
+async function loadAIBrain() {
+  try {
+    const entries = await sbGet(`ai_brain?user_id=eq.${currentUser.id}&active=eq.true&order=created_at.desc`);
+    allBrainEntries = entries || [];
+    renderBrainEntries();
+    await loadVoiceLog();
+  } catch(e) {
+    console.error('AI Brain load error:', e);
+  }
+}
+
+function setBrainFilter(filter, btn) {
+  currentBrainFilter = filter;
+  document.querySelectorAll('#brain-filter-row .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderBrainEntries();
+}
+
+function renderBrainEntries() {
+  const container = document.getElementById('brain-list');
+  let filtered = allBrainEntries;
+  if (currentBrainFilter !== 'all') {
+    filtered = allBrainEntries.filter(e => e.category === currentBrainFilter);
+  }
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="empty" style="grid-column:1/-1"><div style="font-size:24px;margin-bottom:8px">...</div>No entries in this category yet.</div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(entry => `
+    <div class="brain-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px">
+        <div class="brain-card-title">${esc(entry.title)}</div>
+        <span class="brain-cat-badge">${entry.category.replace('_',' ')}</span>
+      </div>
+      <div class="brain-card-content" id="bc-${entry.id}">${esc(entry.content)}</div>
+      ${entry.file_url ? `<a href="${entry.file_url}" target="_blank" style="font-size:12px;color:var(--ac2);text-decoration:none;margin-top:8px;display:block">Attached: ${esc(entry.file_name||'Document')}</a>` : ''}
+      <div class="brain-card-meta">
+        <span>${entry.source === 'voice' ? 'via Voice' : entry.source === 'document' ? 'Document' : 'Manual'} · ${formatDate(entry.created_at)}</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn bg bs" onclick="toggleBrainExpand('bc-${entry.id}',this)">Show more</button>
+          <button class="btn bg bs" onclick="openBrainModal('${entry.id}')">Edit</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleBrainExpand(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('expanded');
+  btn.textContent = el.classList.contains('expanded') ? 'Show less' : 'Show more';
+}
+
+// ── Brain Modal ────────────────────────────────────────────────
+function openBrainModal(entryId = null) {
+  editingBrainId = entryId;
+  document.getElementById('brain-modal').style.display = 'flex';
+  document.getElementById('brain-modal-title').textContent = entryId ? 'Edit Context' : 'Add Context';
+  document.getElementById('brain-delete-btn').style.display = entryId ? 'inline-flex' : 'none';
+  document.getElementById('brain-file-name').style.display = 'none';
+
+  if (entryId) {
+    const entry = allBrainEntries.find(e => e.id === entryId);
+    if (entry) {
+      document.getElementById('brain-title').value = entry.title || '';
+      document.getElementById('brain-category').value = entry.category || 'personal';
+      document.getElementById('brain-content').value = entry.content || '';
+    }
+  } else {
+    document.getElementById('brain-title').value = '';
+    document.getElementById('brain-category').value = 'personal';
+    document.getElementById('brain-content').value = '';
+  }
+}
+
+function closeBrainModal() {
+  document.getElementById('brain-modal').style.display = 'none';
+  editingBrainId = null;
+}
+
+function showBrainFileName(input) {
+  const file = input.files[0];
+  if (file) {
+    const el = document.getElementById('brain-file-name');
+    el.textContent = 'Selected: ' + file.name;
+    el.style.display = 'block';
+  }
+}
+
+async function saveBrainEntry() {
+  const title = document.getElementById('brain-title').value.trim();
+  const category = document.getElementById('brain-category').value;
+  const content_text = document.getElementById('brain-content').value.trim();
+
+  if (!title) { toast('Please enter a title'); return; }
+  if (!content_text) { toast('Please add some content'); return; }
+
+  const btn = document.getElementById('brain-save-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+
+  try {
+    // Upload document if provided
+    let fileUrl = null, fileName = null;
+    const fileInput = document.getElementById('brain-file-input');
+    if (fileInput.files[0]) {
+      const file = fileInput.files[0];
+      fileName = file.name;
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const path = `${currentUser.id}/${Date.now()}_${safeName}`;
+      const uploadRes = await fetch(`${SB_URL}/storage/v1/object/ai-brain-docs/${path}`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': file.type || 'application/octet-stream', 'x-upsert': 'true' },
+        body: file
+      });
+      if (uploadRes.ok) {
+        fileUrl = `${SB_URL}/storage/v1/object/public/ai-brain-docs/${path}`;
+      }
+    }
+
+    const data = {
+      user_id: currentUser.id,
+      title, category,
+      content: content_text,
+      source: 'manual',
+      updated_at: new Date().toISOString(),
+      ...(fileUrl && { file_url: fileUrl, file_name: fileName })
+    };
+
+    if (editingBrainId) {
+      await fetch(`${SB_URL}/rest/v1/ai_brain?id=eq.${editingBrainId}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    } else {
+      await fetch(`${SB_URL}/rest/v1/ai_brain`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+    }
+
+    closeBrainModal();
+    await loadAIBrain();
+    toast(editingBrainId ? 'Context updated!' : 'Context saved! AI now knows more about you.');
+  } catch(e) {
+    toast('Failed to save: ' + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save';
+  }
+}
+
+async function deleteBrainEntry() {
+  if (!editingBrainId || !confirm('Delete this context? The AI will no longer have this information.')) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/ai_brain?id=eq.${editingBrainId}`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    closeBrainModal();
+    await loadAIBrain();
+    toast('Context deleted');
+  } catch(e) { toast('Failed to delete'); }
+}
+
+// ── Build AI context string ────────────────────────────────────
+async function getAIContext() {
+  if (!currentUser || currentUser.role !== 'admin') return '';
+  try {
+    const entries = await sbGet(`ai_brain?user_id=eq.${currentUser.id}&active=eq.true&order=category.asc`);
+    if (!entries || !entries.length) return '';
+    const grouped = {};
+    for (const e of entries) {
+      if (!grouped[e.category]) grouped[e.category] = [];
+      grouped[e.category].push(`[${e.title}]: ${e.content}`);
+    }
+    let context = '=== PERSONAL CONTEXT ABOUT THE USER ===\n';
+    for (const [cat, items] of Object.entries(grouped)) {
+      context += `\n--- ${cat.replace('_',' ').toUpperCase()} ---\n`;
+      context += items.join('\n');
+    }
+    context += '\n=== END OF PERSONAL CONTEXT ===\n';
+    return context;
+  } catch(e) { return ''; }
+}
+
+// ── Voice Recording ────────────────────────────────────────────
+async function toggleVoice() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      stream.getTracks().forEach(t => t.stop());
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      await transcribeAudio(audioBlob);
+    };
+
+    mediaRecorder.start();
+    isRecording = true;
+
+    const btn = document.getElementById('voice-btn');
+    btn.classList.add('recording');
+    btn.textContent = 'STOP';
+    document.getElementById('voice-status').textContent = 'Recording... tap to stop';
+
+    const transcript = document.getElementById('voice-transcript');
+    transcript.style.display = 'block';
+    transcript.textContent = 'Listening...';
+    transcript.style.color = 'var(--mt)';
+  } catch(e) {
+    toast('Microphone access denied. Please allow microphone in browser settings.');
+    console.error(e);
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    mediaRecorder.stop();
+  }
+  isRecording = false;
+  const btn = document.getElementById('voice-btn');
+  btn.classList.remove('recording');
+  btn.textContent = 'MIC';
+  document.getElementById('voice-status').textContent = 'Processing...';
+}
+
+async function transcribeAudio(audioBlob) {
+  const apiKey = cfg.gemini;
+  if (!apiKey) { toast('Add your Claude API key in Settings first'); return; }
+
+  try {
+    // Convert audio to base64
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const base64Audio = reader.result.split(',')[1];
+
+      // Use Claude to transcribe via audio description
+      // Since Claude API doesn't do audio directly, we use Web Speech API as primary
+      // and fall back to a prompt-based approach
+      document.getElementById('voice-status').textContent = 'Transcribing...';
+    };
+    reader.readAsDataURL(audioBlob);
+
+    // Use Web Speech API for transcription (works in Chrome/Edge/Safari)
+    // This already ran during recording - if we have a transcript use it
+    if (currentTranscript) {
+      showTranscript(currentTranscript);
+    } else {
+      // Fallback: inform user
+      document.getElementById('voice-transcript').textContent = 'Could not transcribe. Please type your command below or use Chrome/Edge for voice support.';
+      document.getElementById('voice-transcript').style.color = 'var(--warn)';
+      document.getElementById('voice-status').textContent = 'Type your command instead';
+
+      // Show a text input fallback
+      const transcript = document.getElementById('voice-transcript');
+      transcript.contentEditable = 'true';
+      transcript.style.color = 'var(--tx)';
+      transcript.textContent = '';
+      transcript.focus();
+      showVoiceActions();
+    }
+  } catch(e) {
+    toast('Transcription failed: ' + e.message);
+    document.getElementById('voice-status').textContent = 'Tap to try again';
+  }
+}
+
+// Use Web Speech API for real-time transcription
+function startSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return false;
+
+  const recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  const btn = document.getElementById('voice-btn');
+  const statusEl = document.getElementById('voice-status');
+  const transcriptEl = document.getElementById('voice-transcript');
+
+  recognition.onstart = () => {
+    isRecording = true;
+    btn.classList.add('recording');
+    btn.textContent = 'STOP';
+    btn.onclick = () => { recognition.stop(); };
+    statusEl.textContent = 'Listening... speak now';
+    transcriptEl.style.display = 'block';
+    transcriptEl.textContent = '';
+    transcriptEl.style.color = 'var(--mt)';
+    document.getElementById('voice-ai-response').style.display = 'none';
+  };
+
+  recognition.onresult = (event) => {
+    let interim = '';
+    let final = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const text = event.results[i][0].transcript;
+      if (event.results[i].isFinal) final += text;
+      else interim += text;
+    }
+    transcriptEl.textContent = (final || interim);
+    transcriptEl.style.color = final ? 'var(--tx)' : 'var(--mt)';
+    if (final) currentTranscript = final;
+  };
+
+  recognition.onend = () => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.textContent = 'MIC';
+    btn.onclick = () => toggleVoice();
+    if (currentTranscript) {
+      statusEl.textContent = 'Got it! Send to AI?';
+      showVoiceActions();
+    } else {
+      statusEl.textContent = 'Nothing heard. Tap to try again.';
+    }
+  };
+
+  recognition.onerror = (e) => {
+    isRecording = false;
+    btn.classList.remove('recording');
+    btn.textContent = 'MIC';
+    btn.onclick = () => toggleVoice();
+    if (e.error === 'not-allowed') {
+      statusEl.textContent = 'Microphone blocked. Allow in browser settings.';
+    } else {
+      statusEl.textContent = 'Error: ' + e.error + '. Tap to retry.';
+    }
+  };
+
+  recognition.start();
+  return true;
+}
+
+// Override toggleVoice to use Speech Recognition
+async function toggleVoice() {
+  if (isRecording) {
+    stopRecording();
+    return;
+  }
+  currentTranscript = '';
+  document.getElementById('voice-send-btn').style.display = 'none';
+  document.getElementById('voice-clear-btn').style.display = 'none';
+
+  // Try Web Speech API first (best for mobile)
+  const speechStarted = startSpeechRecognition();
+  if (!speechStarted) {
+    // Fallback to manual text input
+    const transcriptEl = document.getElementById('voice-transcript');
+    transcriptEl.style.display = 'block';
+    transcriptEl.contentEditable = 'true';
+    transcriptEl.style.color = 'var(--tx)';
+    transcriptEl.textContent = 'Type your command here...';
+    transcriptEl.style.borderColor = 'var(--ac)';
+    transcriptEl.focus();
+    document.getElementById('voice-status').textContent = 'Voice not supported — type your command';
+    showVoiceActions();
+    transcriptEl.addEventListener('input', () => {
+      currentTranscript = transcriptEl.textContent.trim();
+    });
+  }
+}
+
+function showVoiceActions() {
+  document.getElementById('voice-send-btn').style.display = 'inline-flex';
+  document.getElementById('voice-clear-btn').style.display = 'inline-flex';
+}
+
+function clearVoice() {
+  currentTranscript = '';
+  document.getElementById('voice-transcript').style.display = 'none';
+  document.getElementById('voice-transcript').contentEditable = 'false';
+  document.getElementById('voice-send-btn').style.display = 'none';
+  document.getElementById('voice-clear-btn').style.display = 'none';
+  document.getElementById('voice-ai-response').style.display = 'none';
+  document.getElementById('voice-status').textContent = 'Tap to start recording';
+}
+
+function showTranscript(text) {
+  currentTranscript = text;
+  const el = document.getElementById('voice-transcript');
+  el.style.display = 'block';
+  el.textContent = text;
+  el.style.color = 'var(--tx)';
+  document.getElementById('voice-status').textContent = 'Got it! Send to AI?';
+  showVoiceActions();
+}
+
+// ── Send voice command to AI ───────────────────────────────────
+async function sendVoiceToAI() {
+  const transcript = currentTranscript ||
+    document.getElementById('voice-transcript').textContent.trim();
+
+  if (!transcript || transcript === 'Type your command here...') {
+    toast('Nothing to send');
+    return;
+  }
+
+  const apiKey = cfg.gemini;
+  if (!apiKey) { toast('Add your Claude API key in Settings first'); return; }
+
+  const btn = document.getElementById('voice-send-btn');
+  btn.disabled = true; btn.textContent = 'Processing...';
+
+  try {
+    const aiContext = await getAIContext();
+    const today = new Date().toLocaleDateString('en-US', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+
+    const prompt = `You are a personal AI assistant for ${currentUser?.name || 'the admin'}.
+Today is ${today}.
+
+${aiContext}
+
+The user just gave you this voice command:
+"${transcript}"
+
+Based on their personal context above and this command, respond helpfully. You can:
+1. Add a new context entry to their AI Brain (say "SAVE_CONTEXT: [category] | [title] | [content]")
+2. Suggest creating a task (say "CREATE_TASK: [title] | [description] | [category] | [due_date YYYY-MM-DD or null]")
+3. Provide advice, reminders, or information based on what you know about them
+4. Acknowledge preferences or rules they want you to remember
+
+Always respond conversationally first, then include any SAVE_CONTEXT or CREATE_TASK actions on a new line if applicable.
+Keep your response concise and actionable.`;
+
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || 'Claude API error');
+
+    const aiReply = data.content?.[0]?.text || '';
+
+    // Show AI response
+    const responseEl = document.getElementById('voice-ai-response');
+    responseEl.style.display = 'block';
+    responseEl.innerHTML = '<strong style="color:var(--ac2)">AI Response:</strong><br>' + esc(aiReply).replace(/
+/g, '<br>');
+
+    // Auto-execute SAVE_CONTEXT if present
+    const saveMatch = aiReply.match(/SAVE_CONTEXT:\s*([^|]+)\|([^|]+)\|([^
+]+)/);
+    if (saveMatch) {
+      const [, category, title, content_text] = saveMatch.map(s => s.trim());
+      await fetch(`${SB_URL}/rest/v1/ai_brain`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: currentUser.id,
+          category: category.toLowerCase().replace(/\s/g, '_'),
+          title, content: content_text,
+          source: 'voice',
+          updated_at: new Date().toISOString()
+        })
+      });
+      await loadAIBrain();
+      toast('AI saved new context from your voice command!');
+    }
+
+    // Auto-execute CREATE_TASK if present
+    const taskMatch = aiReply.match(/CREATE_TASK:\s*([^|]+)\|([^|]+)\|([^|]+)\|([^
+]+)/);
+    if (taskMatch) {
+      const [, title, description, category, due_date] = taskMatch.map(s => s.trim());
+      await fetch(`${SB_URL}/rest/v1/tasks`, {
+        method: 'POST',
+        headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title, description,
+          category: category.toLowerCase().replace(/\s/g, '_'),
+          due_date: due_date !== 'null' ? due_date : null,
+          created_by: currentUser.id,
+          status: 'todo',
+          priority: 'medium'
+        })
+      });
+      toast('AI created a task from your voice command!');
+    }
+
+    // Log voice command
+    await fetch(`${SB_URL}/rest/v1/voice_commands`, {
+      method: 'POST',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: currentUser.id,
+        transcript,
+        ai_response: aiReply,
+        action_taken: saveMatch ? 'saved_context' : taskMatch ? 'created_task' : 'conversation',
+        status: 'processed'
+      })
+    });
+
+    await loadVoiceLog();
+    document.getElementById('voice-status').textContent = 'Done! Tap to record again.';
+
+  } catch(e) {
+    toast('AI error: ' + e.message);
+    console.error(e);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Send to AI';
+  }
+}
+
+// ── Voice Log ──────────────────────────────────────────────────
+async function loadVoiceLog() {
+  const container = document.getElementById('voice-log-list');
+  if (!container) return;
+  try {
+    const logs = await sbGet(`voice_commands?user_id=eq.${currentUser.id}&order=created_at.desc&limit=10`);
+    if (!logs || !logs.length) {
+      container.innerHTML = '<div style="font-size:13px;color:var(--mt);padding:12px 0">No voice commands yet.</div>';
+      return;
+    }
+    container.innerHTML = '<div class="voice-log">' + logs.map(log => `
+      <div class="voice-log-item">
+        <div class="voice-log-transcript">"${esc(log.transcript)}"</div>
+        <div class="voice-log-response">${esc(log.ai_response || '').replace(/SAVE_CONTEXT:[^
+]+/g,'').replace(/CREATE_TASK:[^
+]+/g,'').trim()}</div>
+        <div class="voice-log-time">${formatDate(log.created_at)} · ${log.action_taken || 'conversation'}</div>
+      </div>`).join('') + '</div>';
+  } catch(e) { console.error('Voice log error:', e); }
+}
+
 </script>
 </body>
 </html>

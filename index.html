@@ -2668,33 +2668,33 @@ async function loadVoiceLog() {
 // ── Clear Inbox ────────────────────────────────────────────────
 async function clearInbox() {
   if (!allPosts.length) { toast('Inbox is already empty'); return; }
-  if (!confirm('Move all inbox posts to history and clear the inbox?')) return;
+  if (!confirm('Clear all ' + allPosts.length + ' posts from inbox?')) return;
 
   try {
-    let cleared = 0;
-    for (const post of allPosts) {
-      try {
-        // Mark as posted (moves to history conceptually)
-        if (post.id && !post.id.includes('-')) {
-          await fetch(`${SB_URL}/rest/v1/generated_posts?id=eq.${post.id}`, {
-            method: 'PATCH',
-            headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ status: 'posted' })
-          });
-        } else {
-          // Local post - remove from localStorage
-          const local = JSON.parse(localStorage.getItem('local_posts') || '[]');
-          const updated = local.filter(p => p.id !== post.id);
-          localStorage.setItem('local_posts', JSON.stringify(updated));
-        }
-        cleared++;
-      } catch(e) { console.error('Clear post error:', e); }
-    }
-    // Reload from Supabase so badge reflects true state
-    await loadInbox();
-    toast(`Inbox cleared — ${cleared} posts moved to history`);
+    // Delete ALL generated_posts from Supabase for this user in one go
+    const sbResult = await fetch(`${SB_URL}/rest/v1/generated_posts?status=in.(new,reviewed)`, {
+      method: 'DELETE',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+
+    // Also clear localStorage posts
+    localStorage.removeItem('local_posts');
+
+    // Clear in memory immediately
+    allPosts = [];
+    updateStats([]);
+    renderPosts([]);
+
+    // Force badges to 0 immediately
+    const b = document.getElementById('inbox-badge');
+    if (b) { b.textContent = ''; b.style.display = 'none'; }
+    const bm = document.getElementById('inbox-badge-mobile');
+    if (bm) { bm.textContent = ''; bm.style.display = 'none'; }
+
+    toast('Inbox cleared!');
   } catch(e) {
-    toast('Failed to clear inbox: ' + e.message);
+    toast('Failed to clear: ' + e.message);
+    console.error(e);
   }
 }
 
